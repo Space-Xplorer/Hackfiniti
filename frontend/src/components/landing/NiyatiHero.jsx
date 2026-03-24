@@ -34,23 +34,29 @@ export default function NiyatiHero() {
   }, [])
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#04221f] via-[#113a35] to-[#04221f] pb-20 text-white">
+    <section className="relative overflow-hidden bg-white pb-20 text-[#04221f]">
+      <div className="pointer-events-none absolute inset-0 opacity-75">
+        <AsciiGlobeCanvas isBackground />
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 bg-white/65" />
+
       <nav
         className={`fixed left-1/2 top-5 z-50 w-[94%] max-w-6xl -translate-x-1/2 transition-all duration-300 ${
           isScrolled
             ? 'rounded-full bg-[#04221f]/95 px-6 py-3 shadow-xl shadow-black/25 backdrop-blur-md'
-            : 'rounded-2xl bg-transparent px-2 py-2'
+            : 'rounded-full border border-[#04221f]/10 bg-white/90 px-6 py-3 shadow-md shadow-[#04221f]/10 backdrop-blur-md'
         }`}
       >
         <div className="flex items-center justify-between gap-6">
-          <div className="font-serif text-2xl tracking-wide">Niyati</div>
+          <div className={`font-serif text-2xl tracking-wide ${isScrolled ? 'text-white' : 'text-[#04221f]'}`}>Daksha</div>
 
-          <div className="hidden items-center gap-8 text-sm text-white/90 md:flex">
-            <a href="#industries" className="transition hover:text-[#dbf226]">Industries</a>
-            <a href="#resources" className="transition hover:text-[#dbf226]">Resources</a>
+          <div className={`hidden items-center gap-8 text-sm md:flex ${isScrolled ? 'text-white/90' : 'text-[#04221f]/90'}`}>
+            <a href="#industries" className="transition hover:text-[#005b52]">Industries</a>
+            <a href="#resources" className="transition hover:text-[#005b52]">Resources</a>
 
             <div className="group relative">
-              <button className="flex items-center gap-2 transition hover:text-[#dbf226]">
+              <button className="flex items-center gap-2 transition hover:text-[#005b52]">
                 Products
                 <span className="text-xs">▾</span>
               </button>
@@ -69,28 +75,41 @@ export default function NiyatiHero() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="hidden rounded-full border border-white/20 px-4 py-2 text-sm transition hover:border-[#dbf226] hover:text-[#dbf226] sm:inline-flex">
+            <button
+              className={`hidden rounded-full px-4 py-2 text-sm transition sm:inline-flex ${
+                isScrolled
+                  ? 'border border-white/20 text-white hover:border-[#dbf226] hover:text-[#dbf226]'
+                  : 'border border-[#04221f]/20 text-[#04221f] hover:border-[#005b52] hover:text-[#005b52]'
+              }`}
+            >
               Log In
             </button>
             <button className="rounded-full bg-[#dbf226] px-4 py-2 text-sm font-semibold text-[#04221f] transition hover:-translate-y-0.5 hover:bg-[#eef98a]">
               Contact Us
             </button>
-            <button aria-label="Quick action" className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/5 text-sm transition hover:border-[#dbf226] hover:text-[#dbf226]">
+            <button
+              aria-label="Quick action"
+              className={`grid h-10 w-10 place-items-center rounded-full text-sm transition ${
+                isScrolled
+                  ? 'border border-white/20 bg-white/5 text-white hover:border-[#dbf226] hover:text-[#dbf226]'
+                  : 'border border-[#04221f]/15 bg-white/60 text-[#04221f] hover:border-[#005b52] hover:text-[#005b52]'
+              }`}
+            >
               ⌁
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="mx-auto grid max-w-6xl gap-12 px-6 pt-36 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+      <div className="relative z-10 mx-auto max-w-6xl px-6 pt-36">
         <div>
-          <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.15em] text-[#dbf226]">
+          {/* <div className="inline-flex items-center rounded-full border border-[#005b52]/20 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.15em] text-[#005b52] shadow-sm">
             System Live | Forensic Multi-Agent Intelligence Layer
-          </div>
+          </div> */}
 
-          <h1 className="mt-8 font-serif text-6xl leading-none sm:text-7xl md:text-8xl">Niyati</h1>
+          <h1 className="mt-8 font-serif text-6xl leading-none sm:text-7xl md:text-8xl">Daksha</h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#113a35]/85 sm:text-lg">
             Real-time GST Intelligence Platform. Detect circular trading loops, isolate payment gaps, discover hidden network risks,
             and explain every decision with transparent multi-agent evidence.
           </p>
@@ -98,10 +117,6 @@ export default function NiyatiHero() {
           <button className="mt-8 rounded-full bg-[#dbf226] px-7 py-3 text-sm font-semibold text-[#04221f] shadow-lg shadow-[#dbf226]/30 transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#dbf226]/40">
             Run Pre-Audit Safety Check
           </button>
-        </div>
-
-        <div>
-          <AsciiGlobeCanvas />
         </div>
       </div>
     </section>

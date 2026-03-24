@@ -24,7 +24,7 @@ export default function BenefitsSecurity() {
         <div className="relative">
           <div className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full bg-[#dbf226]/30 blur-3xl" />
 
-          <h2 className="relative z-10 font-serif text-4xl md:text-5xl">Why Choose Niyati?</h2>
+          <h2 className="relative z-10 font-serif text-4xl md:text-5xl">Why Choose Daksha?</h2>
           <p className="relative z-10 mt-4 max-w-3xl text-sm leading-relaxed text-white/75 md:text-base">
             Purpose-built trust, explainability, and security controls for high-stakes forensic intelligence operations.
           </p>
