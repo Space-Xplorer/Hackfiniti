@@ -1,14 +1,20 @@
 import asyncio
 import base64
+import importlib
 import json
+import logging
 import random
+from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from api.state import APPLICATIONS_DB, WORKFLOW_DB, WORKFLOW_EVENTS, new_id, parse_token
+from api.auth_helpers import get_email_from_authorization
+from api.state import APPLICATIONS_DB, WORKFLOW_DB, WORKFLOW_EVENTS, new_id
 
-router = APIRouter(prefix="/workflow", tags=["workflow"])
+router = APIRouter(tags=["workflow"])
+ocr_logger = logging.getLogger("ocr")
+workflow_logger = logging.getLogger("workflow")
 
 # Expected document types per service
 REQUIRED_DOC_TYPES = {
@@ -31,14 +37,6 @@ DOC_FIELD_MAP = {
 MIN_DOC_SIZE_BYTES = 500
 
 
-def _get_email(authorization: str | None) -> str:
-    token = (authorization or "").replace("Bearer ", "", 1)
-    email = parse_token(token)
-    if not email:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return email
-
-
 def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tuple[list[str], dict[str, float]]:
     """
     Validates uploaded documents and returns:
@@ -54,6 +52,7 @@ def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tu
     missing = required - uploaded_types
     if missing:
         errors.append(f"Missing required documents: {', '.join(sorted(missing)).replace('_', ' ')}")
+        ocr_logger.warning("missing_required_docs request_type=%s missing=%s", request_type, sorted(missing))
 
     for doc in uploaded_documents:
         doc_type = doc.get("type", "unknown")
@@ -67,11 +66,13 @@ def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tu
             size = len(raw)
         except Exception:
             size = 0
+        ocr_logger.info("doc_received type=%s name=%s mime=%s size_bytes=%s", doc_type, name, mime, size)
 
         # Reject suspiciously small files (likely random/blank)
         if size < MIN_DOC_SIZE_BYTES:
             errors.append(f"'{name}' appears to be empty or corrupt (size: {size} bytes). Please upload a valid document.")
             confidence_scores[doc_type] = 0.0
+            ocr_logger.warning("doc_invalid_empty_or_corrupt type=%s name=%s size_bytes=%s", doc_type, name, size)
             continue
 
         # Check MIME type matches expected for document type
@@ -79,6 +80,7 @@ def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tu
         if mime and mime not in valid_mimes:
             errors.append(f"'{name}' has unsupported format '{mime}'. Use PDF, JPG, or PNG.")
             confidence_scores[doc_type] = 10.0
+            ocr_logger.warning("doc_invalid_mime type=%s name=%s mime=%s", doc_type, name, mime)
             continue
 
         # Simulate OCR confidence based on file size and type
@@ -86,6 +88,7 @@ def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tu
         base_confidence = min(95.0, 50.0 + (size / 10000) * 20)
         noise = random.uniform(-5, 5)
         confidence_scores[doc_type] = round(max(10.0, min(98.0, base_confidence + noise)), 1)
+        ocr_logger.info("doc_validated type=%s confidence=%s", doc_type, confidence_scores[doc_type])
 
     return errors, confidence_scores
 
@@ -120,7 +123,7 @@ def _extract_fields(uploaded_documents: list[dict], declared_data: dict) -> dict
 
 @router.post("/verify-kyc")
 async def verify_kyc(payload: dict, authorization: str | None = Header(default=None)) -> dict:
-    _get_email(authorization)
+    get_email_from_authorization(authorization)
     if not payload.get("name") or not payload.get("aadhaar"):
         raise HTTPException(status_code=400, detail="Name and Aadhaar are required")
     aadhaar = str(payload.get("aadhaar", ""))
@@ -202,7 +205,7 @@ def _cross_validate_ocr(ocr_json: dict) -> tuple[list[str], bool]:
 
 @router.post("/preview-ocr")
 async def preview_ocr(payload: dict, authorization: str | None = Header(default=None)) -> dict:
-    _get_email(authorization)
+    get_email_from_authorization(authorization)
 
     uploaded_documents: list[dict] = payload.get("uploaded_documents") or []
     declared_data: dict = payload.get("declared_data") or {}
@@ -211,13 +214,15 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
     client_ocr: dict | None = payload.get("client_ocr")
 
     if not uploaded_documents and not client_ocr:
+        ocr_logger.warning("preview_ocr_failed reason=no_documents")
         raise HTTPException(status_code=400, detail="No documents uploaded.")
 
     # --- Path A: client sent pre-extracted OCR JSON ---
     if client_ocr:
         flags, freshness_ok = _cross_validate_ocr(client_ocr)
         extracted_data = client_ocr.get("extracted_data", {})
-        confidence = client_ocr.get("confidence_score", 0.8)
+        confidence = client_ocr.get("confidence_score", 0.0)
+        ocr_status = "success" if extracted_data else "skipped"
 
         # Merge with declared data for prefill
         prefill = {**declared_data}
@@ -242,11 +247,13 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
             "consistency_flags": flags,
             "document_freshness_passed": freshness_ok,
             "confidence_score": confidence,
+            "ocr_status": ocr_status,
         }
 
     # --- Path B: fallback — validate raw uploaded documents ---
     errors, confidence_scores = _validate_documents(uploaded_documents, request_type)
     if errors:
+        ocr_logger.warning("preview_ocr_failed reason=document_validation errors=%s", errors)
         raise HTTPException(
             status_code=422,
             detail={"message": "Document validation failed", "errors": errors, "confidence_scores": confidence_scores},
@@ -254,6 +261,7 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
 
     low_confidence = {k: v for k, v in confidence_scores.items() if v < 40}
     if low_confidence:
+        ocr_logger.warning("preview_ocr_failed reason=low_confidence scores=%s", low_confidence)
         raise HTTPException(
             status_code=422,
             detail={
@@ -264,6 +272,7 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
         )
 
     extracted = _extract_fields(uploaded_documents, declared_data)
+    ocr_logger.info("preview_ocr_success request_type=%s docs=%s", request_type, len(uploaded_documents))
     return {
         "ocr_extracted_data": extracted,
         "declared_prefill": extracted,
@@ -271,12 +280,212 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
         "confidence_scores": confidence_scores,
         "consistency_flags": [],
         "document_freshness_passed": True,
+        "ocr_status": "success",
     }
+
+
+def _agent_event(agent: str, status: str, error: str | None = None) -> dict[str, str]:
+    event = {"agent": agent, "status": status}
+    if error:
+        event["error"] = error
+    return event
+
+
+def _run_kyc_step(state: dict[str, Any], events: list[dict[str, str]]) -> dict[str, Any]:
+    declared = state.get("declared_data", {}) or {}
+    aadhaar = str(state.get("submitted_aadhaar") or declared.get("aadhaar") or declared.get("aadhaar_number") or "")
+    name = str(state.get("submitted_name") or declared.get("name") or "").strip()
+
+    if name and aadhaar.isdigit() and len(aadhaar) == 12:
+        state["kyc_verified"] = True
+        state["kyc_data"] = {
+            "name": name,
+            "aadhaar_number": aadhaar,
+            "dob": state.get("submitted_dob") or declared.get("dob") or "",
+        }
+        events.append(_agent_event("kyc", "complete"))
+        workflow_logger.info("request_id=%s agent=kyc status=complete", state.get("request_id", "unknown"))
+    else:
+        state["kyc_verified"] = False
+        state["rejected"] = True
+        state["rejection_reason"] = "KYC data incomplete or invalid Aadhaar."
+        state.setdefault("errors", []).append("KYC validation failed")
+        events.append(_agent_event("kyc", "failed", "KYC validation failed"))
+        workflow_logger.warning(
+            "request_id=%s agent=kyc status=failed reason=%s",
+            state.get("request_id", "unknown"),
+            state.get("rejection_reason"),
+        )
+    return state
+
+
+def _run_agent_step(
+    state: dict[str, Any],
+    events: list[dict[str, str]],
+    *,
+    agent_name: str,
+    module_name: str,
+    class_name: str,
+    method_name: str,
+) -> dict[str, Any]:
+    request_id = state.get("request_id", "unknown")
+    try:
+        module = importlib.import_module(module_name)
+        agent_cls = getattr(module, class_name)
+        method = getattr(agent_cls(), method_name)
+        updated = method(state)
+        if isinstance(updated, dict):
+            state = updated
+        events.append(_agent_event(agent_name, "complete"))
+        workflow_logger.info(
+            "request_id=%s agent=%s status=complete keys=%s",
+            request_id,
+            agent_name,
+            sorted(list(state.keys())),
+        )
+    except Exception as exc:
+        message = f"{agent_name} failed: {exc}"
+        state.setdefault("errors", []).append(message)
+        workflow_logger.warning(message)
+        events.append(_agent_event(agent_name, "failed", str(exc)))
+    return state
+
+
+def _run_underwriting_step(state: dict[str, Any], events: list[dict[str, str]]) -> dict[str, Any]:
+    try:
+        module = importlib.import_module("agents.underwriting")
+        agent = getattr(module, "UnderwritingAgent")()
+        request_type = state.get("request_type")
+
+        if request_type in ["loan", "both"]:
+            state = agent.process_loan(state)
+        if request_type in ["insurance", "both", "health"]:
+            state = agent.process_insurance(state)
+
+        events.append(_agent_event("underwriting", "complete"))
+        workflow_logger.info(
+            "request_id=%s agent=underwriting status=complete loan_prediction=%s insurance_prediction=%s",
+            state.get("request_id", "unknown"),
+            bool(state.get("loan_prediction")),
+            bool(state.get("insurance_prediction")),
+        )
+    except Exception as exc:
+        message = f"underwriting failed: {exc}"
+        state.setdefault("errors", []).append(message)
+        workflow_logger.warning(message)
+        events.append(_agent_event("underwriting", "failed", str(exc)))
+    return state
+
+
+def _run_transparency_step(state: dict[str, Any], events: list[dict[str, str]]) -> dict[str, Any]:
+    try:
+        module = importlib.import_module("agents.transparency")
+        agent = getattr(module, "TransparencyAgent")()
+        request_type = state.get("request_type")
+
+        if request_type in ["loan", "both"] and state.get("loan_prediction"):
+            state = agent.explain_loan_decision(state)
+        if request_type in ["insurance", "both", "health"] and state.get("insurance_prediction"):
+            state = agent.explain_insurance_premium(state)
+
+        events.append(_agent_event("transparency", "complete"))
+        workflow_logger.info(
+            "request_id=%s agent=transparency status=complete loan_explanation=%s insurance_explanation=%s",
+            state.get("request_id", "unknown"),
+            bool(state.get("loan_explanation")),
+            bool(state.get("insurance_explanation")),
+        )
+    except Exception as exc:
+        message = f"transparency failed: {exc}"
+        state.setdefault("errors", []).append(message)
+        workflow_logger.warning(message)
+        events.append(_agent_event("transparency", "failed", str(exc)))
+    return state
+
+
+def _build_agent_state(application_id: str, request_id: str, app: dict[str, Any]) -> dict[str, Any]:
+    declared = dict(app.get("applicant_data") or {})
+    return {
+        "application_id": application_id,
+        "request_id": request_id,
+        "request_type": app.get("request_type", "loan"),
+        "loan_type": app.get("loan_type"),
+        "declared_data": declared,
+        "applicant_data": declared,
+        "uploaded_documents": app.get("uploaded_documents") or [],
+        "submitted_name": app.get("submitted_name") or "",
+        "submitted_dob": app.get("submitted_dob") or "",
+        "submitted_aadhaar": app.get("submitted_aadhaar") or "",
+        "errors": [],
+        "rejected": False,
+        "completed": False,
+    }
+
+
+def _run_agent_pipeline(application_id: str, request_id: str, app: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    state = _build_agent_state(application_id, request_id, app)
+    events: list[dict[str, str]] = []
+
+    state = _run_kyc_step(state, events)
+    if not state.get("kyc_verified"):
+        state["completed"] = True
+        return state, events
+
+    state = _run_agent_step(state, events, agent_name="onboarding", module_name="agents.onboarding", class_name="OnboardingAgent", method_name="process_documents")
+    state = _run_agent_step(state, events, agent_name="fraud", module_name="agents.fraud", class_name="FraudAgent", method_name="check_fraud")
+    state = _run_agent_step(state, events, agent_name="feature_engineering", module_name="agents.feature_engineering", class_name="FeatureEngineeringAgent", method_name="process")
+    state = _run_agent_step(state, events, agent_name="compliance", module_name="agents.compliance", class_name="ComplianceAgent", method_name="check_compliance")
+    state = _run_underwriting_step(state, events)
+    state = _run_agent_step(state, events, agent_name="verification", module_name="agents.verification", class_name="VerificationAgent", method_name="verify_decision")
+    state = _run_transparency_step(state, events)
+    state = _run_agent_step(state, events, agent_name="supervisor", module_name="agents.supervisor", class_name="SupervisorAgent", method_name="make_decision")
+
+    state["completed"] = True
+    return state, events
+
+
+def _merge_agent_outputs(application_id: str, app: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    rejected = bool(state.get("rejected", False))
+    merged: dict[str, Any] = {} if rejected else _compute_results(application_id, app)
+
+    if state.get("loan_prediction"):
+        merged["loan_prediction"] = state["loan_prediction"]
+    if state.get("insurance_prediction"):
+        merged["insurance_prediction"] = state["insurance_prediction"]
+    if state.get("loan_explanation"):
+        merged["loan_explanation"] = state["loan_explanation"]
+    if state.get("insurance_explanation"):
+        merged["insurance_explanation"] = state["insurance_explanation"]
+    if state.get("model_output"):
+        merged["model_output"] = state["model_output"]
+
+    verification = state.get("loan_verification") or state.get("insurance_verification")
+    if verification:
+        merged["verification_result"] = verification
+
+    if state.get("ocr_confidence_scores"):
+        merged["ocr_confidence_scores"] = state["ocr_confidence_scores"]
+
+    document_verification = state.get("document_verification") or {}
+    stale_docs = [k for k, v in document_verification.items() if isinstance(v, dict) and not v.get("is_fresh", True)]
+    if stale_docs:
+        merged["ocr_freshness_warnings"] = [f"{doc} may be stale" for doc in stale_docs]
+
+    if rejected:
+        merged.setdefault("verification_result", {
+            "verified": False,
+            "concerns": [state.get("rejection_reason") or "Application rejected"],
+            "recommendation": "REJECT",
+        })
+        merged.setdefault("ocr_confidence_scores", {})
+        merged.setdefault("ocr_freshness_warnings", [])
+
+    return merged
 
 
 @router.post("/submit/{application_id}")
 async def submit_workflow(application_id: str, authorization: str | None = Header(default=None)) -> dict:
-    user_email = _get_email(authorization)
+    user_email = get_email_from_authorization(authorization)
     app = APPLICATIONS_DB.get(application_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -286,35 +495,40 @@ async def submit_workflow(application_id: str, authorization: str | None = Heade
         raise HTTPException(status_code=400, detail="Application already submitted")
 
     request_id = new_id("req")
-    app["status"] = "completed"
+    app["status"] = "submitted"
     app["request_id"] = request_id
 
-    # Compute rich results from applicant_data now so get_results can serve them
-    results = _compute_results(application_id, app)
+    final_state, events = _run_agent_pipeline(application_id, request_id, app)
+    results = _merge_agent_outputs(application_id, app, final_state)
 
+    workflow_status = "completed" if final_state.get("completed") else "failed"
     WORKFLOW_DB[application_id] = {
-        "status": "completed",
+        "status": workflow_status,
         "request_id": request_id,
-        "rejected": False,
-        "rejection_reason": None,
+        "rejected": bool(final_state.get("rejected", False)),
+        "rejection_reason": final_state.get("rejection_reason"),
+        "agent_errors": final_state.get("errors", []),
         **results,
     }
-    WORKFLOW_EVENTS[application_id] = [
-        {"agent": "kyc", "status": "complete"},
-        {"agent": "onboarding", "status": "complete"},
-        {"agent": "rules", "status": "complete"},
-        {"agent": "fraud", "status": "complete"},
-        {"agent": "feature_engineering", "status": "complete"},
-        {"agent": "underwriting", "status": "complete"},
-        {"agent": "verification", "status": "complete"},
-        {"agent": "transparency", "status": "complete"},
-    ]
+    WORKFLOW_EVENTS[application_id] = events
+    app["status"] = "completed" if workflow_status == "completed" else "failed"
+
+    workflow_logger.info(
+        "request_id=%s app_id=%s workflow_status=%s rejected=%s rejection_reason=%s agent_errors=%s",
+        request_id,
+        application_id,
+        workflow_status,
+        bool(final_state.get("rejected", False)),
+        final_state.get("rejection_reason"),
+        final_state.get("errors", []),
+    )
+
     return {"message": "Workflow started", "app_id": application_id, "request_id": request_id, "status": "processing"}
 
 
 @router.get("/status/{application_id}")
 async def get_status(application_id: str, authorization: str | None = Header(default=None)) -> dict:
-    user_email = _get_email(authorization)
+    user_email = get_email_from_authorization(authorization)
     app = APPLICATIONS_DB.get(application_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -566,7 +780,7 @@ def _compute_results(application_id: str, app: dict) -> dict:
 
 @router.get("/results/{application_id}")
 async def get_results(application_id: str, authorization: str | None = Header(default=None)) -> dict:
-    user_email = _get_email(authorization)
+    user_email = get_email_from_authorization(authorization)
     app = APPLICATIONS_DB.get(application_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -605,9 +819,17 @@ async def get_results(application_id: str, authorization: str | None = Header(de
 
 
 @router.get("/stream/{application_id}")
-async def stream_workflow(application_id: str, authorization: str | None = Header(default=None)) -> StreamingResponse:
+async def stream_workflow(
+    application_id: str,
+    authorization: str | None = Header(default=None),
+    token: str | None = Query(default=None),
+) -> StreamingResponse:
     if authorization:
-        _get_email(authorization)
+        get_email_from_authorization(authorization)
+    elif token:
+        get_email_from_authorization(f"Bearer {token}")
+    else:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     async def event_generator():
         for event in WORKFLOW_EVENTS.get(application_id, []):

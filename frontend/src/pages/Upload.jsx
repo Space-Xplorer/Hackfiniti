@@ -83,7 +83,9 @@ export default function Upload() {
 
     // If we have client-side OCR results, validate them first
     if (ocrResults.length > 0) {
-      const validation = validateOcrResults(ocrResults)
+      const successfulResults = ocrResults.filter((r) => r.extracted && !r.error)
+      const failedResults = ocrResults.filter((r) => r.error || !r.extracted)
+      const validation = validateOcrResults(successfulResults)
       if (validation.consistency_flags.length > 0) {
         setConsistencyFlags(validation.consistency_flags)
         // Don't block — show flags as warnings but allow continue
@@ -99,7 +101,9 @@ export default function Upload() {
         ...(validation.extracted_data.existing_emi && { declared_existing_emi: validation.extracted_data.existing_emi }),
         ...(validation.extracted_data.property_value && { property_value: validation.extracted_data.property_value }),
         ...(validation.extracted_data.employer_name && { employer_name: validation.extracted_data.employer_name }),
-        _ocr_confidence: validation.confidence_score,
+        _ocr_status: successfulResults.length > 0 ? 'success' : 'skipped',
+        _ocr_confidence: successfulResults.length > 0 ? validation.confidence_score : 0,
+        _ocr_failed_docs: failedResults.length,
         _ocr_flags: validation.consistency_flags,
         _ocr_freshness: validation.document_freshness_passed,
       }

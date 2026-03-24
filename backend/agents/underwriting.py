@@ -121,6 +121,11 @@ class UnderwritingAgent:
         """
         try:
             logger.info("Processing loan application")
+
+            if not state.get("compliance_checked", False):
+                raise ValueError("Compliance must be checked before underwriting")
+            if not state.get("compliance_passed", False):
+                raise ValueError("Compliance failed. Underwriting model execution blocked")
             
             derived = self._ensure_derived_features(state).get("loan", {})
             if not derived:
@@ -177,6 +182,11 @@ class UnderwritingAgent:
         """
         try:
             logger.info("Processing insurance application")
+
+            if not state.get("compliance_checked", False):
+                raise ValueError("Compliance must be checked before underwriting")
+            if not state.get("compliance_passed", False):
+                raise ValueError("Compliance failed. Underwriting model execution blocked")
             
             derived = self._ensure_derived_features(state).get("health", {})
             if not derived:

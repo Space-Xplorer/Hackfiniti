@@ -1,0 +1,14 @@
+{
+  "payload": {
+    "fraud_analysis": {
+      "fraud_risk_score": 0.0,
+      "anomaly_flags": [],
+      "confidence_level": "low",
+      "document_checks": []
+    }
+  },
+  "metadata": {
+    "request_id": "req_ef4a0b999ae8",
+    "request_type": "loan"
+  }
+}

@@ -34,7 +34,7 @@ class ComplianceAgent:
     using RAG (Retrieval-Augmented Generation) for intelligent rule checking.
     """
     
-    def __init__(self, groq_api_key: Optional[str] = None, rules_dir: str = "src/rules"):
+    def __init__(self, groq_api_key: Optional[str] = None, rules_dir: Optional[str] = None):
         """
         Initialize Compliance Agent.
         
@@ -43,7 +43,8 @@ class ComplianceAgent:
             rules_dir: Directory containing regulatory rules files
         """
         self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
-        self.rules_dir = Path(rules_dir)
+        base_dir = Path(__file__).resolve().parent
+        self.rules_dir = Path(rules_dir) if rules_dir else (base_dir / "rules")
         self.bypass_compliance = os.getenv("BYPASS_COMPLIANCE", "false").lower() == "true"
         
         # Initialize LLM if available
@@ -86,14 +87,20 @@ class ComplianceAgent:
                     documents.append(doc)
                     logging.info(f"Loaded USDA rules: {len(content)} characters")
             
-            # Load IRDAI insurance rules
-            irdai_path = self.rules_dir / "irdai_insurance_rules.txt"
-            if irdai_path.exists():
-                with open(irdai_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    doc = Document(page_content=content, metadata={"source": "IRDAI", "type": "insurance"})
-                    documents.append(doc)
-                    logging.info(f"Loaded IRDAI rules: {len(content)} characters")
+            # Load insurance rules (IRDAI/NICL naming variants)
+            insurance_rules_candidates = [
+                ("irdai_insurance_rules.txt", "IRDAI"),
+                ("nicl_insurance_rules.txt", "NICL"),
+            ]
+            for rules_file, source_name in insurance_rules_candidates:
+                insurance_path = self.rules_dir / rules_file
+                if insurance_path.exists():
+                    with open(insurance_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        doc = Document(page_content=content, metadata={"source": source_name, "type": "insurance"})
+                        documents.append(doc)
+                        logging.info(f"Loaded {source_name} rules: {len(content)} characters")
+                    break
             
             if not documents:
                 logging.warning("No regulatory rules files found")
@@ -523,14 +530,18 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         """
         try:
             # Retrieve relevant rules
-            query = "What are the eligibility requirements for health insurance? Include age, BMI, pre-existing conditions, smoking status."
+            query = (
+                "National Mediclaim Plus underwriting requirements for India: "
+                "entry age, pre-policy checkup, critical illness limits, "
+                "permanent exclusions, and mandatory disclosures"
+            )
             relevant_docs = self.rules_db.similarity_search(query, k=5)
             
             # Format rules for prompt
             rules_text = "\n\n".join([doc.page_content for doc in relevant_docs])
             
             # Create prompt for LLM
-            prompt = f"""You are an IRDAI compliance officer checking a health insurance application.
+            prompt = f"""You are an underwriting compliance officer for National Mediclaim Plus Policy (India).
 
 Applicant Data:
 - Age: {data.get('age', 'Not provided')}
@@ -545,7 +556,7 @@ Applicant Data:
 Relevant IRDAI Rules:
 {rules_text}
 
-Task: Identify any CRITICAL or HIGH severity violations. For each violation, provide:
+Task: Identify any CRITICAL or HIGH severity violations against the National Mediclaim Plus underwriting guide. For each violation, provide:
 1. Rule violated (exact rule number if available)
 2. Reason for violation (be specific)
 3. Severity (CRITICAL or HIGH only)
@@ -580,14 +591,18 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         """
         try:
             # Retrieve relevant rules
-            query = "What are the eligibility requirements for health insurance? Include age, BMI, pre-existing conditions, smoking status."
+            query = (
+                "National Mediclaim Plus underwriting requirements for India: "
+                "entry age, pre-policy checkup, critical illness limits, "
+                "permanent exclusions, and mandatory disclosures"
+            )
             relevant_docs = self.rules_db.similarity_search(query, k=5)
             
             # Format rules for prompt
             rules_text = "\n\n".join([doc.page_content for doc in relevant_docs])
             
             # Create prompt for LLM
-            prompt = f"""You are an IRDAI compliance officer checking a health insurance application.
+            prompt = f"""You are an underwriting compliance officer for National Mediclaim Plus Policy (India).
 
 Applicant Data:
 - Age: {data.get('age', 'Not provided')}
@@ -602,7 +617,7 @@ Applicant Data:
 Relevant IRDAI Rules:
 {rules_text}
 
-Task: Identify any CRITICAL or HIGH severity violations. For each violation, provide:
+Task: Identify any CRITICAL or HIGH severity violations against the National Mediclaim Plus underwriting guide. For each violation, provide:
 1. Rule violated (exact rule number if available)
 2. Reason for violation (be specific)
 3. Severity (CRITICAL or HIGH only)
@@ -636,61 +651,152 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         Returns:
             List of violations
         """
-        violations = []
-        
-        # Rule 1.1: Minimum Entry Age (CRITICAL)
-        age = data.get('age')
-        if age and age < 18:
+        violations: List[Dict[str, str]] = []
+
+        age = _to_int(_pick(data, "age", "applicant_age"))
+        if age is not None:
+            if age < 18:
+                violations.append({
+                    "rule": "National Mediclaim Plus: Entry Age",
+                    "reason": f"Applicant age {age} is below minimum entry age of 18 years for proposer",
+                    "severity": "CRITICAL"
+                })
+            elif age > 65:
+                violations.append({
+                    "rule": "National Mediclaim Plus: Maximum Entry Age",
+                    "reason": f"Applicant age {age} exceeds maximum entry age of 65 years",
+                    "severity": "HIGH"
+                })
+
+        inpatient_si = _to_float(_pick(data, "coverage_amount", "sum_insured", "si", "inpatient_sum_insured"))
+        critical_illness_opted = _to_bool(_pick(data, "critical_illness_opted", "has_critical_illness_cover", "critical_illness"))
+        critical_illness_si = _to_float(_pick(data, "critical_illness_sum_insured", "critical_illness_si"))
+        if critical_illness_opted and critical_illness_si is not None and inpatient_si is not None and critical_illness_si > inpatient_si:
             violations.append({
-                "rule": "IRDAI Rule 1.1: Minimum Entry Age",
-                "reason": f"Applicant age {age} is below minimum of 18 years",
+                "rule": "National Mediclaim Plus: Critical Illness SI cap",
+                "reason": f"Critical illness SI ({critical_illness_si:,.0f}) cannot exceed inpatient SI ({inpatient_si:,.0f})",
                 "severity": "CRITICAL"
             })
-        
-        # Rule 1.2: Maximum Entry Age (HIGH)
-        if age and age > 65:
+
+        proposal_form_submitted = _to_bool(_pick(data, "proposal_form_submitted", "proposal_form_complete"))
+        if proposal_form_submitted is False:
             violations.append({
-                "rule": "IRDAI Rule 1.2: Maximum Entry Age",
-                "reason": f"Applicant age {age} exceeds standard maximum of 65 years",
+                "rule": "National Mediclaim Plus: Mandatory Proposal Form",
+                "reason": "Proposal form is mandatory for new policies and relevant renewals/portability cases",
+                "severity": "CRITICAL"
+            })
+
+        premium_amount = _to_float(_pick(data, "premium_amount", "premium"))
+        pan = _pick(data, "pan", "pan_number")
+        form_60 = _to_bool(_pick(data, "form60_submitted", "form_60_submitted"))
+        form_61 = _to_bool(_pick(data, "form61_submitted", "form_61_submitted"))
+        if premium_amount is not None and premium_amount > 50000 and not pan and not form_60 and not form_61:
+            violations.append({
+                "rule": "National Mediclaim Plus: PAN/Form 60/61 for premium > 50,000",
+                "reason": "PAN is mandatory above premium 50,000; where PAN is unavailable, Form 60 or Form 61 must be submitted",
                 "severity": "HIGH"
             })
-        
-        # Rule 3.1: BMI Limits (HIGH)
-        bmi = data.get('bmi')
-        if bmi:
-            if bmi < 18:
-                violations.append({
-                    "rule": "IRDAI Rule 3.1: BMI Limits",
-                    "reason": f"BMI {bmi:.1f} is below minimum of 18 (underweight)",
-                    "severity": "HIGH"
-                })
-            elif bmi > 35:
-                violations.append({
-                    "rule": "IRDAI Rule 3.1: BMI Limits",
-                    "reason": f"BMI {bmi:.1f} exceeds 35 (requires significant premium loading)",
-                    "severity": "HIGH"
-                })
-        
-        # Rule 5.1: Diabetes with High HbA1c (HIGH)
-        hba1c = data.get('hba1c')
-        if hba1c and hba1c > 9.0:
+
+        bmi = _to_float(_pick(data, "bmi", "body_mass_index"))
+        smoker = _pick(data, "smoker", "smoking", "smoking_status")
+        alcohol = _pick(data, "alcohol", "alcohol_consumption", "alcohol_habit")
+        if bmi is None:
             violations.append({
-                "rule": "IRDAI Rule 5.1: Diabetes Control",
-                "reason": f"HbA1c {hba1c:.1f}% exceeds 9% (poorly controlled diabetes)",
+                "rule": "National Mediclaim Plus: Risk Factor Disclosure",
+                "reason": "BMI declaration is required in proposal risk-factor section",
                 "severity": "HIGH"
             })
-        
-        # Rule 5.2: Severe Hypertension (HIGH)
-        systolic_bp = data.get('systolic_bp')
-        diastolic_bp = data.get('diastolic_bp')
-        if systolic_bp and diastolic_bp:
-            if systolic_bp > 160 or diastolic_bp > 100:
+        if smoker in [None, "", "not provided"]:
+            violations.append({
+                "rule": "National Mediclaim Plus: Risk Factor Disclosure",
+                "reason": "Smoking habit declaration is required in proposal risk-factor section",
+                "severity": "HIGH"
+            })
+        if alcohol in [None, "", "not provided"]:
+            violations.append({
+                "rule": "National Mediclaim Plus: Risk Factor Disclosure",
+                "reason": "Alcohol consumption declaration is required in proposal risk-factor section",
+                "severity": "HIGH"
+            })
+
+        needs_checkup = False
+        if age is not None and age >= 40:
+            needs_checkup = True
+        if inpatient_si is not None and inpatient_si >= 600000:
+            needs_checkup = True
+        if critical_illness_opted:
+            needs_checkup = True
+
+        if needs_checkup:
+            pre_policy_checkup_done = _to_bool(_pick(data, "pre_policy_checkup_done", "medical_exam_done", "medical_reports_submitted"))
+            if pre_policy_checkup_done is False:
                 violations.append({
-                    "rule": "IRDAI Rule 5.2: Hypertension",
-                    "reason": f"Blood pressure {systolic_bp}/{diastolic_bp} exceeds 160/100 (severe hypertension)",
-                    "severity": "HIGH"
+                    "rule": "National Mediclaim Plus: Pre-policy checkup",
+                    "reason": "Pre-policy checkup is mandatory for this risk profile (age/SI/critical illness)",
+                    "severity": "CRITICAL"
                 })
-        
+
+        systolic_bp = _to_float(_pick(data, "systolic_bp", "bp_systolic"))
+        diastolic_bp = _to_float(_pick(data, "diastolic_bp", "bp_diastolic"))
+        if systolic_bp is not None and diastolic_bp is not None and (systolic_bp >= 160 or diastolic_bp >= 100):
+            violations.append({
+                "rule": "National Mediclaim Plus: Hypertension risk threshold",
+                "reason": f"Blood pressure {int(systolic_bp)}/{int(diastolic_bp)} indicates high underwriting risk",
+                "severity": "HIGH"
+            })
+
+        hba1c = _to_float(_pick(data, "hba1c", "hb_a1c"))
+        if hba1c is not None and hba1c >= 9.0:
+            violations.append({
+                "rule": "National Mediclaim Plus: Diabetes risk threshold",
+                "reason": f"HbA1c {hba1c:.1f}% indicates poor diabetes control for standard underwriting",
+                "severity": "HIGH"
+            })
+
+        permanently_excluded_conditions = {
+            "sarcoidosis",
+            "malignant neoplasm",
+            "malignant neoplasms",
+            "cancer",
+            "epilepsy",
+            "congenital heart disease",
+            "valvular heart disease",
+            "stroke",
+            "crohn",
+            "ulcerative colitis",
+            "chronic liver disease",
+            "cirrhosis",
+            "pancreatitis",
+            "chronic kidney disease",
+            "ckd",
+            "hepatitis b",
+            "alzheimer",
+            "parkinson",
+            "demyelinating",
+            "hiv",
+            "aids",
+            "hearing loss",
+            "papulosquamous",
+            "psoriasis",
+            "avascular necrosis",
+            "osteonecrosis"
+        }
+
+        declared_conditions = _normalize_condition_list(
+            _pick(data, "pre_existing_conditions", "medical_conditions", "existing_conditions", "ped")
+        )
+        matched_exclusions = sorted({
+            item for item in declared_conditions
+            for keyword in permanently_excluded_conditions
+            if keyword in item
+        })
+        if matched_exclusions:
+            violations.append({
+                "rule": "National Mediclaim Plus: Permanently Excluded Illness",
+                "reason": f"Declared condition(s) fall under permanent exclusion list: {', '.join(matched_exclusions)}",
+                "severity": "CRITICAL"
+            })
+
         return violations
     
     def _format_rejection_reason(self, violations: List[Dict[str, str]]) -> str:
@@ -708,3 +814,62 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
             reasons.append(f"- {v['rule']}: {v['reason']}")
         
         return "Application rejected due to regulatory violations:\n" + "\n".join(reasons)
+
+
+def _pick(data: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in data and data.get(key) is not None:
+            return data.get(key)
+    return None
+
+
+def _to_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return 1.0 if value else 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        cleaned = str(value).replace(",", "").strip()
+        return float(cleaned)
+    except Exception:
+        return None
+
+
+def _to_int(value: Any) -> Optional[int]:
+    number = _to_float(value)
+    if number is None:
+        return None
+    return int(number)
+
+
+def _to_bool(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in {"true", "yes", "y", "1", "opted", "done", "submitted"}:
+        return True
+    if text in {"false", "no", "n", "0", "not opted", "pending", "not submitted"}:
+        return False
+    return None
+
+
+def _normalize_condition_list(raw_conditions: Any) -> List[str]:
+    if raw_conditions is None:
+        return []
+
+    values: List[str] = []
+    if isinstance(raw_conditions, str):
+        split_values = raw_conditions.replace(";", ",").split(",")
+        values.extend(split_values)
+    elif isinstance(raw_conditions, list):
+        values.extend([str(item) for item in raw_conditions if item is not None])
+    else:
+        values.append(str(raw_conditions))
+
+    return [item.strip().lower() for item in values if item and item.strip()]

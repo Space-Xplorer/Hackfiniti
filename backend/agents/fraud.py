@@ -9,6 +9,7 @@ from src.schemas.state import ApplicationState
 from src.utils.fraud_detector import FraudDetector
 from src.utils.logging import log_agent_execution, log_error
 from src.utils.storage import save_validation_report
+from .ocr_normalization import normalize_ocr_data
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,8 @@ class FraudAgent:
         try:
             ocr_documents = state.get("ocr_documents", []) or []
             declared = state.get("declared_data", {}) or {}
-            ocr_data = state.get("ocr_extracted_data", {}) or {}
+            ocr_data = normalize_ocr_data(state.get("ocr_extracted_data", {}) or {}, declared)
+            state["ocr_normalized_data"] = ocr_data
             doc_results: List[Dict[str, Any]] = []
 
             for doc in ocr_documents:

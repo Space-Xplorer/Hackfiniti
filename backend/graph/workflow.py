@@ -10,7 +10,6 @@ from langgraph.graph import StateGraph, END
 from src.schemas.state import ApplicationState
 from src.services.kyc import KYCAgent
 from src.agents.onboarding import OnboardingAgent
-from src.agents.rules import RulesAgent
 from src.agents.fraud import FraudAgent
 from src.agents.feature_engineering import FeatureEngineeringAgent
 from src.agents.compliance import ComplianceAgent
@@ -26,7 +25,6 @@ from src.utils.logging import log_request, log_agent_execution
 # Initialize agents
 kyc_agent = KYCAgent()
 onboarding_agent = OnboardingAgent()
-rules_agent = RulesAgent()
 fraud_agent = FraudAgent()
 feature_engineering_agent = FeatureEngineeringAgent()
 compliance_agent = ComplianceAgent()
@@ -48,12 +46,6 @@ def kyc_node(state: ApplicationState) -> ApplicationState:
 def onboarding_node(state: ApplicationState) -> ApplicationState:
     """Onboarding and document processing node."""
     return onboarding_agent.process_documents(state)
-
-
-@safe_agent_wrapper
-def rules_node(state: ApplicationState) -> ApplicationState:
-    """Rules validation node."""
-    return rules_agent.check_rules(state)
 
 
 @safe_agent_wrapper
@@ -166,7 +158,7 @@ def should_continue_after_kyc(state: ApplicationState) -> Literal["onboarding", 
         return "end"
 
 
-def should_continue_after_onboarding(state: ApplicationState) -> Literal["rules", "hitl_checkpoint"]:
+def should_continue_after_onboarding(state: ApplicationState) -> Literal["fraud", "hitl_checkpoint"]:
     """
     Conditional edge after onboarding: go to HITL checkpoint or directly to compliance.
     
@@ -176,16 +168,7 @@ def should_continue_after_onboarding(state: ApplicationState) -> Literal["rules"
     Returns:
         Next node name
     """
-    # Go directly to rules validation after OCR processing
-    return "rules"
-
-
-def should_continue_after_rules(state: ApplicationState) -> Literal["fraud", "end"]:
-    """
-    Conditional edge after rules: continue to fraud checks or end if rejected.
-    """
-    if state.get("rejected") or not state.get("rules_passed", True):
-        return "end"
+    # Go directly to fraud checks after OCR processing
     return "fraud"
 
 
@@ -361,8 +344,8 @@ def create_daksha_workflow() -> StateGraph:
     The workflow follows this path:
     1. KYC verification (can reject)
     2. Onboarding (document OCR)
-    3. Rules validation (can reject)
-    4. Fraud checks (non-blocking)
+    3. Fraud checks (non-blocking)
+    4. Feature engineering
     5. Compliance checking (can reject)
     6. Router (determines loan/insurance/both)
     7. Underwriting (loan and/or insurance)
@@ -379,7 +362,6 @@ def create_daksha_workflow() -> StateGraph:
     # Add nodes
     workflow.add_node("kyc", kyc_node)
     workflow.add_node("onboarding", onboarding_node)
-    workflow.add_node("rules", rules_node)
     workflow.add_node("fraud", fraud_node)
     workflow.add_node("feature_engineering", feature_engineering_node)
     workflow.add_node("hitl_checkpoint", hitl_checkpoint_node)
@@ -408,23 +390,13 @@ def create_daksha_workflow() -> StateGraph:
         }
     )
     
-    # Onboarding ΓåÆ Rules
+    # Onboarding ΓåÆ Fraud
     workflow.add_conditional_edges(
         "onboarding",
         should_continue_after_onboarding,
         {
-            "rules": "rules",
-            "hitl_checkpoint": "hitl_checkpoint"
-        }
-    )
-
-    # Rules ΓåÆ Fraud (or end if rejected)
-    workflow.add_conditional_edges(
-        "rules",
-        should_continue_after_rules,
-        {
             "fraud": "fraud",
-            "end": "finalize"
+            "hitl_checkpoint": "hitl_checkpoint"
         }
     )
 

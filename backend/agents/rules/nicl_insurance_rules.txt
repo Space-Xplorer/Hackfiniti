@@ -1,0 +1,168 @@
+# National Insurance Company Limited - National Mediclaim Plus Policy
+
+## Document Information
+- Insurer: National Insurance Company Limited
+- CIN: U10200WB1906GOI001713
+- IRDAI Registration Number: 58
+- Product: National Mediclaim Plus Policy
+- Scope: Underwriting Guide (India)
+
+## Product Introduction
+National Mediclaim Plus Policy is an individual health insurance policy covering inpatient treatment (cashless/reimbursement) for illness/disease or injury contracted during the policy period.
+
+Core cover includes:
+- 30 days pre-hospitalization and 60 days post-hospitalization
+- 140+ day care procedures/surgeries
+- AYUSH treatment
+- Organ donor medical expenses
+- Maternity
+- Hospital cash ambulance and air ambulance
+- Medical emergency reunion
+- Vaccination for children
+- Medical second opinion
+
+Optional covers:
+- Critical Illness
+- Outpatient Treatment
+
+## Eligibility Rules
+1. Policy can be issued on individual sum insured basis.
+2. Entry age of proposer: 18 to 65 years.
+3. Maximum entry age of any individual: 65 years.
+4. Children aged 3 months to 18 years may be covered only if parent(s) is/are covered at the same time.
+5. Family members eligible include spouse, dependent children, and dependent parents.
+6. Midterm inclusion at pro-rata premium is allowed only for:
+   - Newborn between age 3 months and 6 months
+   - Spouse within 60 days of marriage
+   Other additions are allowed only at renewal.
+7. Dependent children can port to similar retail health products at exit age.
+
+## Sum Insured (SI)
+- Plan A: ₹2,00,000 to ₹10,00,000 (9 slabs, in multiples of ₹1,00,000)
+- Plan B: ₹15,00,000 / ₹20,00,000 / ₹25,00,000
+- Plan C: ₹30,00,000 / ₹40,00,000 / ₹50,00,000
+
+Optional cover SI limits:
+- Critical Illness: ₹2,00,000 / ₹3,00,000 / ₹5,00,000 / ₹10,00,000 / ₹15,00,000 / ₹20,00,000 / ₹25,00,000
+- Outpatient Treatment: ₹2,000 / ₹3,000 / ₹4,000 / ₹5,000 / ₹10,000
+
+## Enhancement / Change of SI Rules
+1. SI enhancement is allowed only at renewal.
+2. Enhancement is generally to the next slab and at company discretion.
+3. Waiting periods apply on enhanced portion as per policy exclusions.
+4. Change of plan is allowed only at renewal, with 4 years continuous coverage and no chronic disease.
+5. For plan change, medical reports are required for each insured person aged 40 years and above.
+6. For individuals aged 70 and above, SI enhancement only in Plan A; plan change is not allowed.
+7. Reduction of SI is allowed only in extreme hardship cases.
+
+## Policy Period
+1. Policy and optional covers are issued for one year.
+2. Policy period for base and optional cover must be identical.
+3. Policy should not be issued for less than one year.
+
+## Proposal Form & Documentation
+1. Proposal form is mandatory and must include age, height, weight, address/contact, email, PED, etc.
+2. First part must be signed by proposer.
+3. Insured person details and medical history must be completed separately for each insured person.
+4. Annexure A required for adverse medical history.
+5. Documentary evidence for address/age should be collected to prevent fraud.
+6. Bank details and cancelled cheque/IFSC proof required for NEFT/RTGS claim settlement.
+7. Proposal form is mandatory for:
+   - New policies
+   - Renewals with declaration changes
+   - Portability in cases (with portability form/Annexure B)
+8. PAN is mandatory for premium above ₹50,000.
+9. If PAN unavailable, Form 60 or Form 61 must be submitted.
+10. Photographs are required for ID issuance and fraud control.
+
+## Pre-Policy Checkup (PPCU)
+Pre-policy checkup is required for:
+- Individuals aged 40 years and above, or
+- Individuals opting SI ₹6,00,000 and above (irrespective of age), or
+- Individuals opting Critical Illness optional cover (age 18-65 years)
+
+If proposal accepted and premium realized, company reimburses 50% PPCU expense.
+
+Required reports may include:
+- Physical examination (doctor with minimum MD (Medicine))
+- HbA1c
+- Lipid profile
+- Serum creatinine
+- Urine routine/microscopic
+- ECG
+- Eye checkup including retinoscopy
+- Any additional test deemed necessary
+
+Report date should not exceed 30 days before proposal date.
+
+## Declared Risk Factors
+Proposal form includes and requires correct declaration of:
+- BMI
+- Smoking habit
+- Alcohol consumption habit
+
+## Permanent Exclusion / High-Risk Disease Mapping
+Any existing illness under permanently excluded list should never be covered for specified ICD codes and must be mentioned in policy schedule.
+
+Indicative list includes:
+- Sarcoidosis (D86.0-D86.9)
+- Malignant neoplasms (broad C/D ranges)
+- Epilepsy (G40)
+- Congenital/valvular heart disease, major heart ailments
+- Cerebrovascular disease / stroke (I60-I69, I67)
+- Inflammatory bowel diseases including Crohn's/ulcerative colitis (K50.x/K51.x)
+- Chronic liver diseases / cirrhosis / alcoholic liver disease
+- Pancreatic diseases including acute/chronic pancreatitis
+- Chronic kidney disease / renal failure categories
+- Hepatitis B
+- Alzheimer's disease / Parkinson's disease
+- Demyelinating disease (G35-G37)
+- HIV & AIDS (B20-B24)
+- Significant hearing loss disorders
+- Papulosquamous disorders including psoriasis
+- Avascular necrosis / osteonecrosis
+
+## Premium & Discounts
+Premium factors include age, SI, and optional covers.
+Discounts:
+- Youth discount: 10%
+- Family discount: 10%
+- Online discount: 5%
+Discounts do not apply to optional cover premium.
+
+## Renewal and Continuity
+- Lifetime renewability.
+- Renewal should not be rejected arbitrarily except fraud/moral hazard/misrepresentation/non-cooperation.
+- Grace period: 30 days (coverage not available during grace period, continuity retained on timely payment as per terms).
+
+## Cancellation
+- Insurer may cancel for misrepresentation/non-disclosure/fraud with 15 days written notice.
+- Insured may cancel with 15 days notice; short period premium table applies.
+- No refund if claim admitted/lodged or benefit availed.
+
+## Portability / Migration
+Portability and migration allowed to/from policy subject to eligibility, acceptance, and extant regulations/circulars.
+Continuity benefit for time-bound exclusions applies as per rules.
+
+## Underwriting Notes
+- Operating office may issue policy up to INR 10,00,000; above sent to RO.
+- Panel doctors may be formed for PPCU evaluation.
+- Adverse risks include chronic diseases like HTN, diabetes, kidney disease, hepatitis/liver disease, AIDS, cancer, genetic disorders.
+- Critical Illness SI should not exceed inpatient SI.
+- Proposal may be rejected if PPCU detects disease/illness likely to entail frequent claims.
+
+## Interpretation Guidance (Medical Reports)
+The guide includes interpretation notes for:
+- Physical exam
+- Blood pressure classification
+- HbA1c interpretation and caveats
+- ECG interpretation scope
+- Eye checkup/retinoscopy
+- Serum creatinine ranges and causes
+- BMI definition/classification and health consequences
+- Lipid profile interpretation thresholds
+
+## Compliance Severity Mapping for This System
+- CRITICAL: policy-ineligible or mandatory underwriting condition violated (likely reject/block)
+- HIGH: major non-compliance requiring strong underwriting action/manual review
+- MEDIUM/LOW: process/control issues requiring remediation or terms adjustment

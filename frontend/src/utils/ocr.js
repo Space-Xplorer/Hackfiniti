@@ -104,6 +104,19 @@ export function validateOcrResults(ocrResults) {
     if (r.extracted) byType[r.docType] = r.extracted
   }
 
+  const extractedDocCount = Object.keys(byType).length
+  if (extractedDocCount === 0) {
+    return {
+      extracted_data: { monthly_income: null, existing_emi: null, property_value: null, employer_name: null },
+      document_freshness_passed: false,
+      consistency_flags: ['OCR could not extract readable data from uploaded documents.'],
+      confidence_score: 0,
+      raw_by_type: byType,
+      extracted_doc_count: 0,
+      ocr_status: 'skipped',
+    }
+  }
+
   const flags = []
   let freshnessOk = true
   const now = new Date()
@@ -177,5 +190,7 @@ export function validateOcrResults(ocrResults) {
     consistency_flags: flags,
     confidence_score: confidence,
     raw_by_type: byType,
+    extracted_doc_count: extractedDocCount,
+    ocr_status: 'success',
   }
 }

@@ -102,9 +102,14 @@ const Config = () => {
             <h2 className="font-serif text-3xl font-bold text-[#04221f]" style={{ fontFamily: 'var(--font-serif)' }}>Declaration Form</h2>
             <p className="text-[#005b52]/70 mt-1">
               Confirm your details
-              {ocrPreviewData._ocr_confidence && (
+              {ocrPreviewData._ocr_status === 'success' && Number.isFinite(ocrPreviewData._ocr_confidence) && (
                 <span className="ml-2 text-xs bg-[#dbf226]/30 text-[#04221f] px-2 py-0.5 rounded-full font-medium">
                   OCR confidence: {Math.round(ocrPreviewData._ocr_confidence * 100)}%
+                </span>
+              )}
+              {ocrPreviewData._ocr_status === 'skipped' && (
+                <span className="ml-2 text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                  OCR skipped
                 </span>
               )}
             </p>

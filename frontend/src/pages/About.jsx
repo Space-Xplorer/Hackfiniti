@@ -37,7 +37,7 @@ const About = () => {
           TRUST THROUGH<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4B0082] via-[#6A0DAD] to-[#4B0082] bg-[length:200%_auto] animate-[shine_3s_linear_infinite]">EXPLAINABILITY.</span>
         </h2>
         <p className="text-lg text-slate-500 font-medium max-w-3xl mx-auto leading-relaxed">
-          Daksha started as a challenge: Could we make AI as transparent as a human auditor? Today, itΓÇÖs a multi-agent framework designed to protect and empower the Indian consumer.
+          Daksha started as a challenge: Could we make AI as transparent as a human auditor? Today, it's a multi-agent framework designed to protect and empower the Indian consumer.
         </p>
       </div>
 

@@ -1,0 +1,14 @@
+{
+  "payload": {
+    "fraud_analysis": {
+      "fraud_risk_score": 0.0,
+      "anomaly_flags": [],
+      "confidence_level": "low",
+      "document_checks": []
+    }
+  },
+  "metadata": {
+    "request_id": "req_2e8a11e2e7be",
+    "request_type": "both"
+  }
+}

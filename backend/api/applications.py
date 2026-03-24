@@ -1,50 +1,51 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header
 from pydantic import BaseModel
+from typing import Optional, List, Any, Dict
+from .auth_helpers import get_email_from_authorization
+from .state import APPLICATIONS_DB, new_id
 
-from api.state import APPLICATIONS_DB, new_id, parse_token
-
-router = APIRouter(prefix="/applications", tags=["applications"])
-
-
-class ApplicationCreatePayload(BaseModel):
-    request_type: str
-    loan_type: str | None = None
-    submitted_name: str | None = None
-    submitted_dob: str | None = None
-    submitted_aadhaar: str | None = None
-    applicant_data: dict = {}
-    uploaded_documents: list[dict] = []
+router = APIRouter()
 
 
-def _get_email(authorization: str | None) -> str:
-    token = (authorization or "").replace("Bearer ", "", 1)
-    email = parse_token(token)
-    if not email:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return email
+class DocumentInput(BaseModel):
+    type: str
+    name: str
+    mime_type: str
+    content_base64: str
+
+
+class CreateApplicationRequest(BaseModel):
+    request_type: str                          # "loan" | "insurance"
+    loan_type: Optional[str] = None            # "home" | "personal" | None
+    submitted_name: Optional[str] = ""
+    submitted_dob: Optional[str] = ""
+    submitted_aadhaar: Optional[str] = ""
+    applicant_data: Optional[Dict[str, Any]] = {}
+    uploaded_documents: Optional[List[DocumentInput]] = []
 
 
 @router.post("/")
-async def create_application(payload: ApplicationCreatePayload, authorization: str | None = Header(default=None)) -> dict:
-    user_email = _get_email(authorization)
+def create_application(req: CreateApplicationRequest, authorization: str = Header(...)):
+    email = get_email_from_authorization(authorization)
     app_id = new_id("app")
-    APPLICATIONS_DB[app_id] = {
+    app = {
         "id": app_id,
-        "user_email": user_email,
+        "user_email": email,
         "status": "draft",
-        "request_type": payload.request_type,
-        "loan_type": payload.loan_type,
-        "submitted_name": payload.submitted_name,
-        "submitted_dob": payload.submitted_dob,
-        "submitted_aadhaar": payload.submitted_aadhaar,
-        "applicant_data": payload.applicant_data,
-        "uploaded_documents": payload.uploaded_documents,
+        "request_type": req.request_type,
+        "loan_type": req.loan_type,
+        "submitted_name": req.submitted_name,
+        "submitted_dob": req.submitted_dob,
+        "submitted_aadhaar": req.submitted_aadhaar,
+        "applicant_data": req.applicant_data or {},
+        "uploaded_documents": [d.model_dump() for d in req.uploaded_documents],
     }
-    return {"message": "Application created", "application": APPLICATIONS_DB[app_id]}
+    APPLICATIONS_DB[app_id] = app
+    return {"message": "Application created", "application": app}
 
 
-@router.get("")
-async def list_applications(authorization: str | None = Header(default=None)) -> dict:
-    user_email = _get_email(authorization)
-    items = [app for app in APPLICATIONS_DB.values() if app["user_email"] == user_email]
+@router.get("/")
+def list_applications(authorization: str = Header(...)):
+    email = get_email_from_authorization(authorization)
+    items = [app for app in APPLICATIONS_DB.values() if app["user_email"] == email]
     return {"items": items}

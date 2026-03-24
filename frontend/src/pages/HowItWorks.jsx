@@ -32,7 +32,7 @@ const HowItWorks = () => {
       step: "04", 
       title: "Advisor Agent", 
       tag: "NLP",
-      desc: "Translates complex EBM shape functions into 'Reasoning Traces'ΓÇöhuman sentences that tell you exactly why.",
+      desc: "Translates complex EBM shape functions into 'Reasoning Traces'—human sentences that tell you exactly why.",
       icon: <MessageSquareQuote /> 
     }
   ];
@@ -121,7 +121,7 @@ const HowItWorks = () => {
                  <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#dbf226]/20 flex items-center justify-center text-[#04221f] shadow-sm"><Network /></div>
                  <div>
                     <h5 className="font-black text-[#04221f] uppercase mb-2">Audit-Ready Logs</h5>
-                    <p className="text-sm text-slate-500 font-medium">Every decision produces a 'Shape Function' graph. ItΓÇÖs not a guess; itΓÇÖs a mathematical certainty.</p>
+                    <p className="text-sm text-slate-500 font-medium">Every decision produces a 'Shape Function' graph. It's not a guess; it's a mathematical certainty.</p>
                  </div>
               </div>
            </div>

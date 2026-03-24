@@ -10,7 +10,10 @@ export default function useWorkflowStream(token, applicationId) {
   useEffect(() => {
     if (!token || !applicationId) return
 
-    const source = new EventSource(`${API_BASE_URL}/workflow/stream/${applicationId}`)
+    setEvents([])
+
+    const encodedToken = encodeURIComponent(token)
+    const source = new EventSource(`${API_BASE_URL}/workflow/stream/${applicationId}?token=${encodedToken}`)
     sourceRef.current = source
     setConnected(true)
 

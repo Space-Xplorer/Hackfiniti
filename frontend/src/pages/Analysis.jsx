@@ -2,18 +2,31 @@
 import { useShield } from '../context/ShieldContext'
 import AgentStatus from '../components/AgentStatus'
 import { createApplication, submitWorkflow, getWorkflowStatus, getWorkflowResults } from '../utils/api'
+import useWorkflowStream from '../hooks/useWorkflowStream'
 
 const agentSteps = [
   { name: 'KYC Agent', description: 'Verifying identity…' },
   { name: 'Onboarding Agent', description: 'OCR extraction…' },
-  { name: 'Rules Agent', description: 'Checking underwriting rules…' },
   { name: 'Fraud Agent', description: 'OCR fraud scan…' },
   { name: 'Feature Engineering', description: 'Deriving risk features…' },
   { name: 'Compliance Agent', description: 'Regulatory checks…' },
   { name: 'Underwriting Agent', description: 'Model inference…' },
   { name: 'Verification Agent', description: 'Sanity checks…' },
   { name: 'Transparency Agent', description: 'Explanation draft…' },
+  { name: 'Supervisor Agent', description: 'Final decision orchestration…' },
 ]
+
+const AGENT_INDEX_BY_EVENT = {
+  kyc: 0,
+  onboarding: 1,
+  fraud: 2,
+  feature_engineering: 3,
+  compliance: 4,
+  underwriting: 5,
+  verification: 6,
+  transparency: 7,
+  supervisor: 8,
+}
 
 const Analysis = () => {
   const {
@@ -40,12 +53,36 @@ const Analysis = () => {
   const pollRef = useRef(null);
   const runRef = useRef(false);
   const appIdRef = useRef(applicationId || null);
+  const { events: streamEvents } = useWorkflowStream(authToken, applicationId);
 
   useEffect(() => {
     appIdRef.current = applicationId || null;
   }, [applicationId]);
 
   const steps = agentSteps.map((a) => a.description)
+
+  useEffect(() => {
+    if (!streamEvents.length) return
+
+    const nonTerminalEvents = streamEvents.filter((evt) => evt && !evt.done)
+    if (!nonTerminalEvents.length) return
+
+    const failedEvent = nonTerminalEvents.find((evt) => evt.status === 'failed')
+    if (failedEvent?.error) {
+      setWorkflowError(failedEvent.error)
+    }
+
+    const lastAgentEvent = [...nonTerminalEvents].reverse().find((evt) => evt.agent)
+    if (!lastAgentEvent) return
+
+    const idx = AGENT_INDEX_BY_EVENT[lastAgentEvent.agent]
+    if (typeof idx === 'number') {
+      const nextStep = lastAgentEvent.status === 'complete'
+        ? Math.min(idx + 1, agentSteps.length - 1)
+        : idx
+      setStep((prev) => Math.max(prev, nextStep))
+    }
+  }, [streamEvents, setWorkflowError])
 
   useEffect(() => {
     if (!authToken || !service || runRef.current || workflowStatus?.status === 'completed' || workflowError) {
@@ -80,7 +117,12 @@ const Analysis = () => {
         }
         if (statusResponse.status === 'failed') {
           clearPoll();
-          setWorkflowError(statusResponse.error || 'Workflow failed');
+          const backendError =
+            statusResponse.rejection_reason
+            || (Array.isArray(statusResponse.agent_errors) && statusResponse.agent_errors[0])
+            || statusResponse.error
+            || 'Workflow failed';
+          setWorkflowError(backendError);
           runRef.current = false;
           return;
         }

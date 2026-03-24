@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 from src.schemas.state import ApplicationState
 from src.utils.logging import log_agent_execution, log_error
 from src.utils.storage import save_derived_features
+from .ocr_normalization import normalize_ocr_data
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ class FeatureEngineeringAgent:
         try:
             request_type = state.get("request_type")
             declared = state.get("declared_data", {}) or {}
-            ocr_data = state.get("ocr_extracted_data", {}) or {}
+            ocr_data = normalize_ocr_data(state.get("ocr_extracted_data", {}) or {}, declared)
+            state["ocr_normalized_data"] = ocr_data
 
             derived: Dict[str, Any] = {
                 "loan": {},

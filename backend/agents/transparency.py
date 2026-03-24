@@ -13,6 +13,7 @@ import logging
 from langchain_groq import ChatGroq
 
 from src.schemas.state import ApplicationState
+from .reasoning_utils import format_feature_contributions, sort_feature_contributions
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class TransparencyAgent:
 	def explain_loan_decision(self, state: ApplicationState) -> ApplicationState:
 		"""Generate explanation and description for loan decision."""
 		prediction = state.get("loan_prediction") or {}
+		verification = state.get("loan_verification") or state.get("verification_result") or {}
 		model_output = (state.get("model_output") or {}).get("loan", {})
 		reasoning = model_output.get("feature_contributions") or prediction.get("reasoning") or {}
 
@@ -85,6 +87,7 @@ class TransparencyAgent:
 			fallback=self._fallback_loan_advisor(approved, probability, insight)
 		)
 		validated = self._sanitize_advisor_text(self._validate_explanation(explanation))
+		validated = self._append_verification_context(validated, verification)
 		state["loan_explanation"] = validated
 		
 		return state
@@ -121,6 +124,7 @@ class TransparencyAgent:
 	def explain_insurance_premium(self, state: ApplicationState) -> ApplicationState:
 		"""Generate explanation and description for insurance premium."""
 		prediction = state.get("insurance_prediction") or {}
+		verification = state.get("insurance_verification") or state.get("verification_result") or {}
 		model_output = (state.get("model_output") or {}).get("insurance", {})
 		reasoning = model_output.get("feature_contributions") or prediction.get("reasoning") or {}
 
@@ -144,6 +148,7 @@ class TransparencyAgent:
 			fallback=self._fallback_insurance_advisor(premium, insight)
 		)
 		validated = self._sanitize_advisor_text(self._validate_explanation(explanation))
+		validated = self._append_verification_context(validated, verification)
 		state["insurance_explanation"] = validated
 		
 		return state
@@ -178,6 +183,7 @@ class TransparencyAgent:
 	async def explain_loan_decision_async(self, state: ApplicationState) -> ApplicationState:
 		"""Async version: Generate explanation and description for loan decision."""
 		prediction = state.get("loan_prediction") or {}
+		verification = state.get("loan_verification") or state.get("verification_result") or {}
 		model_output = (state.get("model_output") or {}).get("loan", {})
 		reasoning = model_output.get("feature_contributions") or prediction.get("reasoning") or {}
 
@@ -204,6 +210,7 @@ class TransparencyAgent:
 			fallback=self._fallback_loan_advisor(approved, probability, insight)
 		)
 		validated = self._sanitize_advisor_text(self._validate_explanation(explanation))
+		validated = self._append_verification_context(validated, verification)
 		state["loan_explanation"] = validated
 		
 		return state
@@ -211,6 +218,7 @@ class TransparencyAgent:
 	async def explain_insurance_premium_async(self, state: ApplicationState) -> ApplicationState:
 		"""Async version: Generate explanation and description for insurance premium."""
 		prediction = state.get("insurance_prediction") or {}
+		verification = state.get("insurance_verification") or state.get("verification_result") or {}
 		model_output = (state.get("model_output") or {}).get("insurance", {})
 		reasoning = model_output.get("feature_contributions") or prediction.get("reasoning") or {}
 
@@ -234,31 +242,24 @@ class TransparencyAgent:
 			fallback=self._fallback_insurance_advisor(premium, insight)
 		)
 		validated = self._sanitize_advisor_text(self._validate_explanation(explanation))
+		validated = self._append_verification_context(validated, verification)
 		state["insurance_explanation"] = validated
 		
 		return state
 
 	def _format_top_factors(self, reasoning: Dict[str, float], top_k: int = 5) -> str:
 		"""Directly converts EBM scores into a readable factual list."""
-		items = [(name, float(score)) for name, score in reasoning.items()]
-		items.sort(key=lambda x: abs(x[1]), reverse=True)
-		top_items = items[:top_k]
-
-		if not top_items:
-			return "- No significant factors identified."
-
-		lines = []
-		for name, score in top_items:
-			direction = "Positive" if score > 0 else "Negative"
-			label = name.replace("_", " ").title()
-			lines.append(f"• {label}: {score:+.4f} ({direction} Impact)")
-		return "\n".join(lines)
+		return format_feature_contributions(
+			reasoning,
+			top_k=top_k,
+			bullet="•",
+			decimals=4,
+			include_direction=True,
+		)
 
 	def _top_contributors(self, reasoning: Dict[str, float], top_k: int = 5) -> List[Tuple[str, float]]:
 		"""Return top contributors by absolute value."""
-		items = [(name, float(score)) for name, score in reasoning.items()]
-		items.sort(key=lambda x: abs(x[1]), reverse=True)
-		return items[:top_k]
+		return sort_feature_contributions(reasoning)[:top_k]
 
 	def _fallback_loan_advisor(self, approved: bool, probability: float, insight: str) -> str:
 		"""Friendly fallback for loan advisory when LLM fails."""
@@ -293,6 +294,37 @@ class TransparencyAgent:
 		if len(cleaned) > 800:
 			return cleaned[:797].rstrip() + "..."
 		return cleaned
+
+	def _append_verification_context(self, text: str, verification: Dict[str, Any]) -> str:
+		"""Append concise verification status and concerns for a coherent reason trail."""
+		if not verification or not isinstance(verification, dict):
+			return text
+
+		recommendation = str(verification.get("recommendation") or "").strip().upper()
+		concerns = verification.get("concerns") or []
+
+		if isinstance(concerns, str):
+			concerns = [concerns]
+		elif not isinstance(concerns, list):
+			concerns = []
+
+		clean_concerns = [str(item).strip() for item in concerns if str(item).strip()]
+		if len(clean_concerns) > 2:
+			clean_concerns = clean_concerns[:2]
+
+		trail = []
+		if recommendation:
+			trail.append(f"Verification recommendation: {recommendation}")
+		if clean_concerns:
+			trail.append("Key concerns: " + "; ".join(clean_concerns))
+
+		if not trail:
+			return text
+
+		base = (text or "").strip()
+		if base and not base.endswith("."):
+			base += "."
+		return (base + " " + " ".join(trail)).strip()
 
 
 def generate_transparency(state: ApplicationState) -> ApplicationState:

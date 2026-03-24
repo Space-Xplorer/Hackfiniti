@@ -1,0 +1,24 @@
+{
+  "payload": {
+    "loan": {
+      "loan_type": "home",
+      "loan_amount_requested": 1800000.0,
+      "tenure_months": null,
+      "property_value": 3000000.0,
+      "emi": null,
+      "foir": null,
+      "ltv": 0.6,
+      "avg_salary_6m": 70000.0,
+      "existing_emi": 10000.0,
+      "income_stability_score": 0.5,
+      "credit_risk_bucket": "medium",
+      "age_risk_bucket": "medium",
+      "credit_score": 700.0
+    },
+    "health": {}
+  },
+  "metadata": {
+    "request_id": "req_8ecdfadce69f",
+    "request_type": "loan"
+  }
+}

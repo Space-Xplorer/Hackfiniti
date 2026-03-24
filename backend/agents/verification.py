@@ -13,6 +13,7 @@ from typing import Dict, Any
 from pydantic import BaseModel, Field, ValidationError
 
 from src.schemas.state import ApplicationState
+from .reasoning_utils import format_feature_contributions
 
 logger = logging.getLogger(__name__)
 
@@ -381,22 +382,13 @@ Task: Verify if this premium is reasonable. Consider:
         Returns:
             Formatted string with top 5 features
         """
-        if not reasoning:
-            return "No reasoning available"
-        
-        # Sort by absolute contribution
-        sorted_features = sorted(
-            reasoning.items(),
-            key=lambda x: abs(x[1]),
-            reverse=True
+        return format_feature_contributions(
+            reasoning,
+            top_k=5,
+            bullet="-",
+            decimals=3,
+            include_direction=False,
         )
-        
-        # Format top 5 features
-        lines = []
-        for name, value in sorted_features[:5]:
-            lines.append(f"- {name}: {value:+.3f}")
-        
-        return "\n".join(lines)
     
 
 

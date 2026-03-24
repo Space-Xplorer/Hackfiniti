@@ -67,7 +67,7 @@ const Result = () => {
       .map(([k, label]) => ({ label, value: ocrPreviewData[k] }))
   }, [ocrPreviewData])
 
-  const ocrConfidence = ocrPreviewData?._ocr_confidence
+  const ocrConfidence = ocrPreviewData?._ocr_status === 'success' ? ocrPreviewData?._ocr_confidence : null
   const ocrFlags = ocrPreviewData?._ocr_flags || []
 
   return (
@@ -102,7 +102,7 @@ const Result = () => {
         )}
 
         {/* AI Explanation */}
-        {explanation && (
+        {!rejected && explanation && (
           <GlassCard className="p-6">
             <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/50 mb-2">AI Summary</p>
             <p className="text-[#04221f]/80 leading-relaxed text-sm">{explanation}</p>
@@ -110,7 +110,7 @@ const Result = () => {
         )}
 
         {/* Feature explanations */}
-        {featureContributions.length > 0 && (
+        {!rejected && featureContributions.length > 0 && (
           <GlassCard className="p-6 space-y-5">
             <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/50">What drove this decision</p>
             {featureContributions.map(({ key, value, meta }) => {
