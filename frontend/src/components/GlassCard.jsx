@@ -1,21 +1,7 @@
-﻿import React from 'react';
-
-const GlassCard = ({ children, className = '', animate = true }) => {
+﻿export default function GlassCard({ children, className = '' }) {
   return (
-    <div
-      className={`
-      relative overflow-hidden
-      bg-white/40 backdrop-blur-xl
-      border border-white/50
-      rounded-[3rem]
-      shadow-[0_25px_50px_-12px_rgba(75,0,130,0.1)]
-      ${animate ? 'animate-in fade-in zoom-in-95 duration-500' : ''}
-      ${className}
-    `}
-    >
+    <div className={`bg-white rounded-3xl border border-[#005b52]/10 shadow-xl shadow-black/5 ${className}`}>
       {children}
     </div>
-  );
-};
-
-export default GlassCard;
+  )
+}

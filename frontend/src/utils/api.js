@@ -16,7 +16,12 @@ const requestJson = async (path, options = {}) => {
   const data = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
-    const message = data.error || data.message || "Request failed";
+    // FastAPI 422 returns { detail: { message, errors, ... } } or { detail: "string" }
+    const detail = data.detail;
+    if (detail && typeof detail === "object" && detail.errors) {
+      throw new Error(JSON.stringify(detail));
+    }
+    const message = (typeof detail === "string" ? detail : null) || data.message || data.error || "Request failed";
     throw new Error(message);
   }
 

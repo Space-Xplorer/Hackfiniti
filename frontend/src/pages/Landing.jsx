@@ -1,105 +1,129 @@
-﻿import React from 'react';
-import { useShield } from '../context/ShieldContext';
-import { Rocket, Shield, BrainCircuit, Sparkles, Zap, Activity, ShieldCheck } from 'lucide-react';
-import GlassCard from '../components/GlassCard';
+﻿import { useShield } from '../context/ShieldContext'
 
-const Landing = () => {
-  const { setView } = useShield();
+const agents = [
+  { n: '1', title: 'KYC Verification', body: 'Instant Aadhaar identity verification via DigiLocker OTP flow.' },
+  { n: '2', title: 'Document OCR', body: 'Extracts salary slips, bank statements, and ITR data with confidence scoring.' },
+  { n: '3', title: 'Fraud Detection', body: 'Multi-layer CV and LLM-based document authenticity analysis.' },
+  { n: '4', title: 'Compliance Engine', body: 'RAG-based regulatory validation against IRDAI and RBI rule sets.' },
+  { n: '5', title: 'EBM Underwriting', body: 'Explainable Boosting Machines predict approval with full feature transparency.' },
+]
+
+const detections = [
+  { icon: '📊', title: 'Income Verification', body: 'Cross-validates declared income against OCR-extracted salary slips and bank statements.' },
+  { icon: '🔍', title: 'Document Authenticity', body: 'Detects tampered PDFs, metadata anomalies, and copy-paste artifacts.' },
+  { icon: '⚖️', title: 'Regulatory Compliance', body: 'Validates every application against IRDAI health insurance and RBI loan guidelines.' },
+]
+
+const benefits = [
+  { title: 'Explainable AI', body: 'Every decision includes feature contribution scores — you know exactly why you were approved or rejected.' },
+  { title: 'OTP-Based KYC', body: 'Aadhaar OTP verification via AadhaarKYC API for secure, real identity confirmation.' },
+  { title: 'Fraud-Resistant', body: 'Four-layer document fraud detection including Error Level Analysis and LLM content verification.' },
+  { title: 'Sub-2-Minute Decisions', body: 'Full underwriting pipeline completes in under 2 minutes from submission to result.' },
+]
+
+export default function Landing() {
+  const { setView } = useShield()
 
   return (
-    <div className="relative min-h-screen flex items-center px-8 overflow-hidden">
-      <div className="grid lg:grid-cols-2 gap-10 items-center w-full relative z-10">
-        
-        {/* --- LEFT CONTENT --- */}
-        <div className="animate-in slide-in-from-left-10 duration-1000">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4B0082]/5 border border-[#4B0082]/10 text-[10px] font-black uppercase tracking-[0.2em] text-[#4B0082] mb-6 shadow-sm">
-            <Zap size={14} className="text-[#F4C2C2]" fill="currentColor" /> 
-            AI-Powered Underwriting
+    <div className="bg-[#f7faf9] text-[#005b52]">
+
+      {/* Hero */}
+      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16">
+        <div className="mb-8 px-5 py-2 rounded-full border border-[#005b52]/10 bg-[#005b52]/5 text-sm font-semibold tracking-wide flex items-center gap-3">
+          <span className="bg-[#dbf226] text-[#005b52] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">System Live</span>
+          AI-Powered Underwriting Platform
+        </div>
+        <h1 className="font-serif text-7xl md:text-9xl font-bold tracking-tight mb-6 text-[#005b52]" style={{ fontFamily: 'var(--font-serif)' }}>
+          Daksha
+        </h1>
+        <p className="text-lg md:text-xl text-[#005b52]/80 max-w-3xl mb-12 font-medium leading-relaxed">
+          Fair, transparent loan and health insurance underwriting. Powered by explainable AI — no black boxes, no unexplained rejections.
+        </p>
+        <button
+          onClick={() => setView('kyc')}
+          className="bg-[#04221f] text-white font-bold text-lg px-8 py-4 rounded-full shadow-[0_10px_30px_rgba(4,34,31,0.3)] hover:bg-[#dbf226] hover:text-[#04221f] hover:-translate-y-1 transition-all duration-300"
+        >
+          Start Your Application
+        </button>
+      </section>
+
+      {/* Agents */}
+      <section className="bg-[#04221f] text-white py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12">
+            <span className="bg-[#dbf226] text-[#04221f] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Architecture</span>
+            <h2 className="font-serif text-4xl md:text-5xl text-[#dbf226] mt-4" style={{ fontFamily: 'var(--font-serif)' }}>Multi-Agent Intelligence</h2>
           </div>
-          
-          <h1 className="text-[8.5vw] lg:text-[6.5vw] font-black leading-[0.85] tracking-tighter text-[#4B0082] mb-6">
-            FAIR RISK.<br />
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#4B0082] via-[#F4C2C2] to-[#4B0082] bg-size-[200%_auto] animate-[shine_3s_linear_infinite] italic">
-              DECODED.
-            </span>
-          </h1>
-
-          <p className="max-w-md text-slate-500 font-medium text-lg mb-8 leading-relaxed">
-            No more "Black Box" rejections. Get verified, see the math, and unlock your true potential with <strong>Daksha Agentic Intelligence</strong>.
-          </p>
-
-          <div className="flex flex-wrap gap-6">
-            <button 
-              onClick={() => setView('kyc')} 
-              className="brinjal-gradient text-[#4b2d67] px-10 py-5 rounded-full font-black uppercase tracking-[0.2em] text-xs flex items-center gap-4 hover:scale-105 transition-all shadow-2xl shadow-[#4B0082]/30 pink-glow border-2 border-[#4B0082]"
-            >
-              Initialize Quest <Rocket size={20} />
-            </button>
-            
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agents.map((a) => (
+              <div key={a.n} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-[#005b52] text-[#dbf226] text-2xl font-bold flex items-center justify-center mb-6">
+                  {a.n}
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">{a.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{a.body}</p>
+              </div>
+            ))}
+            {/* Lime highlight card */}
+            <div className="p-8 rounded-3xl bg-[#dbf226] border border-[#dbf226]/50 shadow-[0_0_30px_rgba(219,242,38,0.15)]">
+              <div className="w-12 h-12 rounded-xl bg-[#04221f] text-[#dbf226] text-2xl font-bold flex items-center justify-center mb-6">✦</div>
+              <h3 className="text-lg font-semibold text-[#04221f] mb-2">Transparent Decisions</h3>
+              <p className="text-sm text-[#04221f]/80 leading-relaxed">Every decision comes with a plain-language explanation and feature contribution breakdown.</p>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* --- RIGHT VISUAL (The Animated Scanner) --- */}
-        <div className="relative animate-in zoom-in-95 duration-1000">
-          <div className="absolute inset-0 bg-[#4B0082] rounded-[4rem] rotate-3 opacity-5 scale-105 blur-2xl" />
-          
-          <GlassCard className="p-10 border-2 border-white/80 relative group">
-            {/* The Scanner Line Animation */}
-            <div className="absolute inset-0 overflow-hidden rounded-[3rem]">
-               <div className="h-0.5 w-full bg-linear-to-r from-transparent via-[#F4C2C2] to-transparent absolute top-0 left-0 shadow-[0_0_15px_#F4C2C2] animate-[scan_4s_ease-in-out_infinite] z-20" />
-            </div>
-
-            <div className="flex justify-between items-start mb-10">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#4B0082] flex items-center justify-center text-[#F4C2C2] shadow-xl rotate-3">
-                  <BrainCircuit size={28} />
+      {/* What We Check */}
+      <section className="bg-[#f7faf9] py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="font-serif text-4xl md:text-5xl text-center text-[#005b52] mb-16" style={{ fontFamily: 'var(--font-serif)' }}>What Daksha Checks</h2>
+          <div className="grid md:grid-cols-3 gap-10">
+            {detections.map((d) => (
+              <div key={d.title} className="text-center group">
+                <div className="w-20 h-20 rounded-full mx-auto mb-6 bg-white shadow-xl flex items-center justify-center text-4xl group-hover:scale-110 group-hover:bg-[#dbf226] transition-all duration-300">
+                  {d.icon}
                 </div>
-                <div>
-                  <h4 className="font-black text-[#4B0082] italic text-lg leading-none">Daksha V1</h4>
-                  <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#F4C2C2]">Agentic Core</span>
-                </div>
+                <h3 className="text-xl font-semibold text-[#04221f] mb-3">{d.title}</h3>
+                <p className="text-sm text-[#005b52]/70 leading-relaxed">{d.body}</p>
               </div>
-              <div className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Live Audit
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="space-y-4">
-              {[
-                { label: "Identity Sync", icon: <Shield size={14} /> },
-                { label: "OCR Extraction", icon: <Sparkles size={14} /> },
-                { label: "EBM Logic Engine", icon: <Activity size={14} /> }
-              ].map((agent, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-white/60 rounded-3xl border border-white/50 group-hover:translate-x-2 transition-transform duration-500">
-                  <div className="flex items-center gap-4">
-                    <div className="text-[#4B0082]">{agent.icon}</div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{agent.label}</span>
+      {/* Why Choose */}
+      <section className="bg-white py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="rounded-[3rem] p-12 md:p-20 bg-[#04221f] text-white relative overflow-hidden shadow-2xl">
+            <div className="pointer-events-none absolute top-0 right-0 w-96 h-96 bg-[#005b52] rounded-full blur-[120px] opacity-50 -translate-y-1/2 translate-x-1/2" />
+            <h2 className="relative z-10 font-serif text-4xl md:text-5xl text-[#dbf226] mb-4" style={{ fontFamily: 'var(--font-serif)' }}>Why Choose Daksha?</h2>
+            <p className="relative z-10 text-white/60 mb-12 max-w-xl">Purpose-built for fair, explainable, and fraud-resistant underwriting decisions.</p>
+            <div className="relative z-10 grid md:grid-cols-2 gap-12">
+              {benefits.map((b) => (
+                <div key={b.title} className="flex gap-4 group">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-[#dbf226]/10 text-[#dbf226] flex items-center justify-center group-hover:bg-[#dbf226] group-hover:text-[#04221f] transition-colors">
+                    ✓
                   </div>
-                  <div className="h-1.5 w-16 bg-[#4B0082]/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#4B0082] rounded-full w-full" />
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">{b.title}</h3>
+                    <p className="text-sm text-white/60 leading-relaxed">{b.body}</p>
                   </div>
                 </div>
               ))}
             </div>
-
-            <div className="mt-8 flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] text-[#4B0082]/30 italic">
-              <ShieldCheck size={14} /> Transparent Underwriting Protocol
-            </div>
-          </GlassCard>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* --- CSS FOR SHINE AND SCAN (In case not in GlobalStyles) --- */}
-      <style>{`
-        @keyframes shine { to { background-position: 200% center; } }
-        @keyframes scan {
-          0% { top: 0%; opacity: 0; }
-          50% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
-        }
-      `}</style>
+      {/* Footer */}
+      <footer className="bg-white py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <span className="font-serif text-2xl font-bold text-[#04221f]" style={{ fontFamily: 'var(--font-serif)' }}>Daksha</span>
+          <p className="text-sm text-[#005b52]/50">© 2026 Daksha Platform. AI-Powered Underwriting. All Rights Reserved.</p>
+        </div>
+      </footer>
     </div>
-  );
-};
+  )
+}
 
-export default Landing;

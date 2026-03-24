@@ -1,7 +1,7 @@
-﻿import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { useShield } from '../context/ShieldContext';
-import GlassCard from '../components/GlassCard';
+﻿import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
+import { useShield } from '../context/ShieldContext'
+import GlassCard from '../components/GlassCard'
 
 const Preliminary = () => {
   const { setView, service, applicantData, setApplicantData, loanType, setLoanType } = useShield();
@@ -43,15 +43,17 @@ const Preliminary = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-6 px-6 animate-in slide-in-from-bottom-10">
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => setView('selection')} className="p-3 bg-white rounded-2xl text-[#4B0082] shadow-sm">
-          <ArrowLeft size={20} />
+    <div className="min-h-screen bg-[#f7faf9] flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-12">
+          <h2 className="font-serif text-4xl font-bold text-[#04221f] mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
+            {service === 'loan' ? 'Select Loan Type' : 'Health Details'}
+          </h2>
+          <p className="text-[#005b52]/70">{service === 'loan' ? 'What kind of loan are you applying for?' : 'Tell us about your health profile'}</p>
+        </div>
+        <button onClick={() => setView('selection')} className="flex items-center gap-2 text-sm text-[#005b52]/60 hover:text-[#005b52] mb-6 transition-colors">
+          <ArrowLeft size={16} /> Back
         </button>
-        <h2 className="text-3xl font-black text-[#4B0082] italic tracking-tighter">
-          {service === 'loan' ? 'Preliminary Loan Details' : 'Preliminary Health Details'}
-        </h2>
-      </div>
 
       <GlassCard className="p-8">
         <div className="space-y-6">
@@ -61,7 +63,7 @@ const Preliminary = () => {
                 <select
                   value={formData.loan_type || 'home'}
                   onChange={(e) => updateField('loan_type', e.target.value)}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 >
                   <option value="home">Home</option>
                   <option value="personal">Personal</option>
@@ -72,7 +74,7 @@ const Preliminary = () => {
                   type="number"
                   value={formData.loan_amount_requested || ''}
                   onChange={(e) => updateField('loan_amount_requested', Number(e.target.value) || '')}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 />
               </Field>
               <Field label="Tenure (months)" required>
@@ -80,7 +82,7 @@ const Preliminary = () => {
                   type="number"
                   value={formData.tenure_months || ''}
                   onChange={(e) => updateField('tenure_months', Number(e.target.value) || '')}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 />
               </Field>
               {formData.loan_type === 'home' ? (
@@ -89,7 +91,7 @@ const Preliminary = () => {
                     type="number"
                     value={formData.property_value || ''}
                     onChange={(e) => updateField('property_value', Number(e.target.value) || '')}
-                    className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                    className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                   />
                 </Field>
               ) : null}
@@ -101,7 +103,7 @@ const Preliminary = () => {
                   type="number"
                   value={formData.age || ''}
                   onChange={(e) => updateField('age', Number(e.target.value) || '')}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 />
               </Field>
               <Field label="City" required>
@@ -109,7 +111,7 @@ const Preliminary = () => {
                   type="text"
                   value={formData.city || ''}
                   onChange={(e) => updateField('city', e.target.value)}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 />
               </Field>
               <Field label="Sum Insured" required>
@@ -117,7 +119,7 @@ const Preliminary = () => {
                   type="number"
                   value={formData.sum_insured || ''}
                   onChange={(e) => updateField('sum_insured', Number(e.target.value) || '')}
-                  className="w-full bg-[#FAF9F6] p-4 rounded-3xl outline-none focus:ring-2 ring-[#F4C2C2] font-bold text-[#4B0082]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#005b52]/20 bg-white text-[#04221f] focus:border-[#005b52] focus:outline-2 focus:outline-[#dbf226] transition-all"
                 />
               </Field>
             </div>
@@ -131,19 +133,20 @@ const Preliminary = () => {
 
           <button
             onClick={handleContinue}
-            className="w-full py-6 brinjal-gradient text-[#533377] drop-shadow-sm rounded-4xl font-black uppercase tracking-widest shadow-xl hover:scale-[1.01] transition-all"
+            className="w-full bg-[#04221f] text-white font-bold py-3 rounded-full hover:bg-[#dbf226] hover:text-[#04221f] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_4px_14px_rgba(4,34,31,0.2)]"
           >
             Continue to Upload
           </button>
         </div>
       </GlassCard>
+      </div>
     </div>
   );
 };
 
 const Field = ({ label, required, children }) => (
-  <div className="space-y-3">
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+  <div className="space-y-1">
+    <label className="text-sm font-medium text-[#005b52]">
       {label}{required ? ' *' : ''}
     </label>
     {children}
@@ -151,3 +154,4 @@ const Field = ({ label, required, children }) => (
 );
 
 export default Preliminary;
+

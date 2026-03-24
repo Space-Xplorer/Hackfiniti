@@ -1,9 +1,7 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { useShield } from '../context/ShieldContext';
-import { Network, Loader2 } from 'lucide-react';
-import GlassCard from '../components/GlassCard';
-import AgentStatus from '../components/AgentStatus';
-import { createApplication, submitWorkflow, getWorkflowStatus, getWorkflowResults } from '../utils/api';
+﻿import { useState, useEffect, useRef } from 'react'
+import { useShield } from '../context/ShieldContext'
+import AgentStatus from '../components/AgentStatus'
+import { createApplication, submitWorkflow, getWorkflowStatus, getWorkflowResults } from '../utils/api'
 
 const Analysis = () => {
   const {
@@ -35,17 +33,19 @@ const Analysis = () => {
     appIdRef.current = applicationId || null;
   }, [applicationId]);
 
-  const steps = [
-    "KYC Agent: Verifying identity...",
-    "Onboarding Agent: OCR extraction...",
-    "Rules Agent: Checking underwriting rules...",
-    "Fraud Agent: OCR fraud scan...",
-    "Feature Engineering Agent: Deriving risk features...",
-    "Compliance Agent: Regulatory checks...",
-    "Underwriting Agent: Model inference...",
-    "Verification Agent: Sanity checks...",
-    "Transparency Agent: Explanation draft..."
-  ];
+  const agentSteps = [
+    { name: 'KYC Agent', description: 'Verifying identity…' },
+    { name: 'Onboarding Agent', description: 'OCR extraction…' },
+    { name: 'Rules Agent', description: 'Checking underwriting rules…' },
+    { name: 'Fraud Agent', description: 'OCR fraud scan…' },
+    { name: 'Feature Engineering', description: 'Deriving risk features…' },
+    { name: 'Compliance Agent', description: 'Regulatory checks…' },
+    { name: 'Underwriting Agent', description: 'Model inference…' },
+    { name: 'Verification Agent', description: 'Sanity checks…' },
+    { name: 'Transparency Agent', description: 'Explanation draft…' },
+  ]
+
+  const steps = agentSteps.map((a) => a.description)
 
   useEffect(() => {
     if (!authToken || !service || runRef.current || workflowStatus?.status === 'completed' || workflowError) {
@@ -175,49 +175,42 @@ const Analysis = () => {
   ]);
 
   return (
-    <div className="h-full w-full overflow-hidden px-6">
-      <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] items-stretch gap-10">
-        <div className="flex items-center justify-center">
-          <div className="relative w-40 h-40">
-            <div className="absolute inset-0 border-8 border-[#4B0082]/10 rounded-full" />
-            <div className="absolute inset-0 border-8 border-[#F4C2C2] border-t-transparent rounded-full animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center text-[#4B0082]"><Network size={44} /></div>
-          </div>
+    <div className="min-h-screen bg-[#04221f] flex flex-col items-center justify-center p-8">
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-8 w-full max-w-xl">
+        <div className="text-center mb-6">
+          <div className="w-3 h-3 bg-[#dbf226] rounded-full animate-pulse mx-auto mb-4" />
+          <h2 className="font-serif text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
+            Daksha is analyzing your application
+          </h2>
+          {!workflowError && (
+            <p className="text-white/50 text-sm mt-1">{steps[step]}</p>
+          )}
         </div>
 
-        <div className="flex flex-col justify-center text-left">
-          <h2 className="text-3xl font-black text-[#4B0082] italic uppercase tracking-[0.2em] mb-5">Agentic Orchestration</h2>
-          <div className="bg-white p-6 rounded-4xl shadow-sm border border-slate-100 max-w-2xl">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Active Task</p>
-            <p className="text-sm font-black text-[#4B0082] animate-pulse">{steps[step]}</p>
-          </div>
-
-          {workflowError ? (
-            <div className="mt-6 text-red-500 text-xs font-bold uppercase tracking-widest">
-              {workflowError}
-            </div>
-          ) : errorCount > 0 ? (
-            <div className="mt-6 text-orange-500 text-xs font-bold uppercase tracking-widest">
-              Connection retry {errorCount}/5
-            </div>
-          ) : null}
-
-          <div className="mt-10">
-            <GlassCard className="p-8 max-w-2xl">
-              <h4 className="text-left font-black text-[#4B0082] mb-8 uppercase italic tracking-widest">
-                Orchestration Pulse
-              </h4>
-              <div className="space-y-4">
-                <AgentStatus name="KYC Agent" status="complete" />
-                <AgentStatus name="Onboarding Agent" status="loading" />
-                <AgentStatus name="Rules Agent" status="waiting" />
-              </div>
-            </GlassCard>
-          </div>
+        <div className="space-y-2 mb-6">
+          {agentSteps.map((agent, i) => {
+            const status = i < step ? 'complete' : i === step ? 'running' : 'pending'
+            return <AgentStatus key={agent.name} name={agent.name} description={agent.description} status={status} />
+          })}
         </div>
+
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="bg-[#dbf226] h-full rounded-full transition-all duration-500"
+            style={{ width: `${(step / agentSteps.length) * 100}%` }}
+          />
+        </div>
+
+        {workflowError && (
+          <div className="mt-4 text-red-400 text-sm text-center">{workflowError}</div>
+        )}
+        {!workflowError && errorCount > 0 && (
+          <div className="mt-4 text-amber-400 text-xs text-center">Connection retry {errorCount}/5</div>
+        )}
       </div>
     </div>
   );
 };
 
 export default Analysis;
+

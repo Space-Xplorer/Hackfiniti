@@ -38,15 +38,15 @@ const HowItWorks = () => {
   ];
 
   return (
-    <div className="px-8 py-10 max-w-7xl mx-auto animate-in fade-in duration-1000">
+    <div className="min-h-screen bg-[#f7faf9] px-6 py-12 max-w-7xl mx-auto">
       
       {/* --- HEADER --- */}
       <div className="text-center mb-20">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4B0082]/5 border border-[#4B0082]/10 text-[10px] font-black uppercase tracking-[0.3em] text-[#4B0082] mb-8">
-          <Binary size={14} className="text-[#F4C2C2]" /> The Technical Blueprint
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#04221f]/5 border border-[#005b52]/10 text-[10px] font-black uppercase tracking-[0.3em] text-[#04221f] mb-8">
+          <Binary size={14} className="text-[#dbf226]" /> The Technical Blueprint
         </div>
-        <h2 className="text-[5.5vw] lg:text-[4.5vw] font-black text-[#4B0082] tracking-tighter italic leading-none mb-6">
-          AGENTIC<br /><span className="text-[#F4C2C2]">ORCHESTRATION.</span>
+        <h2 className="text-[5.5vw] lg:text-[4.5vw] font-black text-[#04221f] tracking-tighter italic leading-none mb-6">
+          AGENTIC<br /><span className="text-[#dbf226]">ORCHESTRATION.</span>
         </h2>
         <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto">
           Daksha isn't a single model. It's a symphony of specialized agents working in a strict, verifiable pipeline.
@@ -56,23 +56,23 @@ const HowItWorks = () => {
       {/* --- PIPELINE VISUALIZATION --- */}
       <div className="relative mb-24">
         {/* Connection Line */}
-        <div className="absolute top-1/2 left-0 w-full h-1 bg-[#4B0082]/5 -z-10 hidden lg:block" />
+        <div className="absolute top-1/2 left-0 w-full h-1 bg-[#04221f]/5 -z-10 hidden lg:block" />
         
         <div className="grid lg:grid-cols-4 gap-6">
           {agentFlow.map((agent, i) => (
             <div key={i} className="relative group">
               <div className="bg-white p-6 rounded-[3rem] border-2 border-slate-100 hover:border-[#F4C2C2] transition-all duration-500 shadow-sm hover:shadow-xl">
-                <div className="w-14 h-14 bg-[#4B0082] rounded-2xl flex items-center justify-center text-[#F4C2C2] mb-6 shadow-lg group-hover:rotate-12 transition-transform">
+                <div className="w-14 h-14 bg-[#04221f] rounded-2xl flex items-center justify-center text-[#dbf226] mb-6 shadow-lg group-hover:rotate-12 transition-transform">
                   {agent.icon}
                 </div>
-                <span className="text-[10px] font-black text-[#F4C2C2] bg-[#4B0082] px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">
+                <span className="text-[10px] font-black text-[#dbf226] bg-[#04221f] px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">
                   {agent.tag}
                 </span>
-                <h4 className="text-lg font-black text-[#4B0082] mb-3 uppercase italic">{agent.title}</h4>
+                <h4 className="text-lg font-black text-[#04221f] mb-3 uppercase italic">{agent.title}</h4>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
                   {agent.desc}
                 </p>
-                <div className="mt-8 flex items-center gap-2 text-[10px] font-black text-[#4B0082]/20 uppercase tracking-[0.3em]">
+                <div className="mt-8 flex items-center gap-2 text-[10px] font-black text-[#04221f]/20 uppercase tracking-[0.3em]">
                   Phase {agent.step} <ArrowRight size={12} />
                 </div>
               </div>
@@ -83,7 +83,7 @@ const HowItWorks = () => {
 
       {/* --- EBM DEEP DIVE (THE MATH) --- */}
       <div className="grid lg:grid-cols-2 gap-12 items-center mb-24">
-        <div className="brinjal-gradient rounded-[4rem] p-10 text-[#F4C2C2] shadow-3xl relative overflow-hidden">
+        <div className="bg-[#04221f] rounded-[4rem] p-10 text-[#dbf226] shadow-3xl relative overflow-hidden">
            <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
            <Cpu size={40} className="mb-8 opacity-50" />
            <h3 className="text-2xl font-black italic mb-6 text-white uppercase tracking-tighter">The GA2M Engine</h3>
@@ -108,19 +108,19 @@ const HowItWorks = () => {
         </div>
 
         <div>
-           <h3 className="text-3xl font-black text-[#4B0082] italic tracking-tighter mb-6 underline decoration-[#F4C2C2] underline-offset-8 uppercase">Why Glass-Box?</h3>
+           <h3 className="text-3xl font-black text-[#04221f] italic tracking-tighter mb-6 underline decoration-[#F4C2C2] underline-offset-8 uppercase">Why Glass-Box?</h3>
            <div className="space-y-10">
               <div className="flex gap-6">
-                 <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#F4C2C2] flex items-center justify-center text-[#4B0082] shadow-sm"><Dna /></div>
+                 <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#dbf226]/20 flex items-center justify-center text-[#04221f] shadow-sm"><Dna /></div>
                  <div>
-                    <h5 className="font-black text-[#4B0082] uppercase mb-2">Editable Intelligence</h5>
+                    <h5 className="font-black text-[#04221f] uppercase mb-2">Editable Intelligence</h5>
                     <p className="text-sm text-slate-500 font-medium">Because EBMs are additive, we can 'edit' the model if we find a bias, without retraining the whole brain.</p>
                  </div>
               </div>
               <div className="flex gap-6">
-                 <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#F4C2C2] flex items-center justify-center text-[#4B0082] shadow-sm"><Network /></div>
+                 <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#dbf226]/20 flex items-center justify-center text-[#04221f] shadow-sm"><Network /></div>
                  <div>
-                    <h5 className="font-black text-[#4B0082] uppercase mb-2">Audit-Ready Logs</h5>
+                    <h5 className="font-black text-[#04221f] uppercase mb-2">Audit-Ready Logs</h5>
                     <p className="text-sm text-slate-500 font-medium">Every decision produces a 'Shape Function' graph. ItΓÇÖs not a guess; itΓÇÖs a mathematical certainty.</p>
                  </div>
               </div>
@@ -129,14 +129,14 @@ const HowItWorks = () => {
       </div>
 
       {/* --- WORKFLOW SUMMARY --- */}
-      <GlassCard className="p-10 text-center border-b-[16px] border-[#F4C2C2]">
-        <h3 className="text-3xl font-black text-[#4B0082] italic mb-4 uppercase">The Agentic Handshake</h3>
+      <GlassCard className="p-10 text-center border-b-4 border-[#dbf226]">
+        <h3 className="text-3xl font-black text-[#04221f] italic mb-4 uppercase">The Agentic Handshake</h3>
         <p className="text-slate-500 font-medium max-w-3xl mx-auto mb-8">
             In standard systems, data is just a number. In Daksha, our agents 'talk' to each other. The **Extraction Agent** passes a feature matrix to the **EBM Engine**, which then hands its math to the **Advisor Agent** to write your report.
          </p>
          <div className="flex justify-center flex-wrap gap-4">
             {["Verifiable", "Deterministic", "Privacy-First", "Bias-Aware"].map((tag, i) => (
-              <span key={i} className="px-6 py-2 bg-[#4B0082] text-[#F4C2C2] rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+              <span key={i} className="px-6 py-2 bg-[#04221f] text-[#dbf226] rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
                 {tag}
               </span>
             ))}
@@ -148,3 +148,4 @@ const HowItWorks = () => {
 };
 
 export default HowItWorks;
+
