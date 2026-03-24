@@ -6,6 +6,7 @@ sqlalchemy
 aiosqlite
 python-jose[cryptography]
 passlib[bcrypt]
+langgraph
 pytest
 pytest-asyncio
 httpx

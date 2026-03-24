@@ -1,3 +1,1 @@
-class AuthService:
-    async def login(self, email: str, password: str) -> dict:
-        return {"email": email, "token": "placeholder"}
+# Auth logic lives in api/auth.py — this module is intentionally minimal.
