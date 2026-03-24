@@ -1,11 +1,41 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-sqlalchemy
-aiosqlite
-python-jose[cryptography]
-passlib[bcrypt]
-pytest
-pytest-asyncio
-httpx
+# Core framework
+langgraph>=0.2.0
+langchain-groq>=0.1.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+
+# ML and data processing
+interpret>=0.6.0          # For EBM models
+scikit-learn>=1.5.0
+pandas>=2.2.3
+numpy>=2.1.0
+
+# OCR and document processing
+pytesseract>=0.3.10       # Tesseract OCR wrapper
+Pillow>=10.4.0            # Image processing
+opencv-python>=4.10.0.84  # Computer vision for preprocessing
+pdf2image>=1.17.0         # PDF to image conversion
+PyPDF2>=3.0.1             # PDF metadata extraction for fraud detection
+google-cloud-vision>=3.7.0  # Optional: Cloud Vision API
+
+# RAG for compliance rules
+faiss-cpu>=1.8.0          # Vector store
+pypdf>=3.17.0             # PDF loading
+
+# API and utilities (for future integration)
+pydantic>=2.7.1
+python-dotenv>=1.0.0
+tenacity>=8.2.3           # Retry logic for API calls
+Faker>=24.0.0             # Generate realistic mock data
+
+# FastAPI API stack
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.0
+aiosqlite>=0.20.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0

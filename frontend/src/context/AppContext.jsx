@@ -1,3 +1,3 @@
-import { createContext } from 'react'
+import { ShieldProvider as AppProvider, useShield as useAppContext } from './ShieldContext';
 
-export const AppContext = createContext(null)
+export { AppProvider, useAppContext };

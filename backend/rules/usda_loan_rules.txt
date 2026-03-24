@@ -1,1 +1,166 @@
-USDA loan rules placeholder.
+# USDA Loan Eligibility Rules and Guidelines
+
+## Document Information
+- Authority: United States Department of Agriculture
+- Program: Rural Development Guaranteed Housing Loan Program
+- Version: 2026
+- Last Updated: January 2026
+
+## Section 1: Credit Score Requirements
+
+### Rule 1.1: Minimum Credit Score
+All applicants must have a minimum CIBIL/Credit Score of 640 to be eligible for USDA guaranteed loans. Applicants with scores below 640 will be automatically rejected unless they can provide compensating factors.
+
+**Severity: CRITICAL**
+**Citation: USDA RD Instruction 1980-D, Section 3.5(a)**
+
+### Rule 1.2: Credit History
+Applicants must demonstrate a satisfactory credit history for the past 12 months with no major derogatory marks including:
+- No bankruptcies within the past 3 years
+- No foreclosures within the past 3 years
+- No collections or charge-offs exceeding $2,000 in aggregate
+
+**Severity: HIGH**
+
+## Section 2: Income Requirements
+
+### Rule 2.1: Debt-to-Income Ratio
+The total debt-to-income (DTI) ratio must not exceed 41% of gross monthly income. This includes:
+- Proposed mortgage payment (PITI)
+- All recurring monthly debts
+- Child support and alimony payments
+
+**Severity: CRITICAL**
+**Citation: USDA RD Instruction 1980-D, Section 3.8**
+
+### Rule 2.2: Income Limits
+Household income must not exceed 115% of the area median income (AMI) for the property location. For most rural areas, this translates to:
+- Single person: Maximum ₹1,500,000 annual income
+- Family of 2-4: Maximum ₹2,000,000 annual income
+- Family of 5+: Maximum ₹2,500,000 annual income
+
+**Severity: HIGH**
+
+### Rule 2.3: Income Stability
+Applicants must demonstrate stable income for at least 24 consecutive months. Self-employed applicants must provide 2 years of tax returns.
+
+**Severity: MEDIUM**
+
+## Section 3: Employment Requirements
+
+### Rule 3.1: Employment History
+Applicants must have continuous employment for at least 2 years. Gaps in employment exceeding 6 months require written explanation.
+
+**Severity: MEDIUM**
+
+### Rule 3.2: Employment Type
+All employment types are acceptable (salaried, self-employed, business owner) provided income can be verified and is stable.
+
+**Severity: LOW**
+
+## Section 4: Property Requirements
+
+### Rule 4.1: Property Location
+The property must be located in an eligible rural area as defined by USDA. Properties in cities with population exceeding 35,000 are not eligible.
+
+**Severity: CRITICAL**
+
+### Rule 4.2: Property Type
+Eligible property types include:
+- Single-family homes
+- Townhouses
+- Condominiums (with USDA approval)
+- Modular homes on permanent foundations
+
+**Severity: HIGH**
+
+### Rule 4.3: Property Condition
+The property must meet USDA minimum property standards and be safe, sanitary, and structurally sound.
+
+**Severity: HIGH**
+
+## Section 5: Loan Amount Limits
+
+### Rule 5.1: Maximum Loan Amount
+The maximum loan amount is determined by the appraised value and cannot exceed:
+- 100% of appraised value for qualified applicants
+- Maximum loan amount: ₹50,000,000 (varies by location)
+
+**Severity: HIGH**
+
+### Rule 5.2: Loan-to-Value Ratio
+USDA loans allow up to 100% financing (0% down payment) for qualified applicants. No minimum down payment is required.
+
+**Severity: LOW**
+
+## Section 6: Asset Requirements
+
+### Rule 6.1: Reserves
+Applicants are not required to have cash reserves after closing, but reserves are considered a positive factor.
+
+**Severity: LOW**
+
+### Rule 6.2: Gift Funds
+Gift funds are allowed for closing costs and can come from family members, employers, or charitable organizations.
+
+**Severity: LOW**
+
+## Section 7: Citizenship and Residency
+
+### Rule 7.1: Citizenship Requirement
+Applicants must be:
+- Indian citizens, or
+- Permanent residents with valid documentation
+
+**Severity: CRITICAL**
+
+### Rule 7.2: Primary Residence
+The property must be the applicant's primary residence. Investment properties and vacation homes are not eligible.
+
+**Severity: CRITICAL**
+
+## Section 8: Age Requirements
+
+### Rule 8.1: Minimum Age
+Applicants must be at least 18 years of age to apply for a USDA loan.
+
+**Severity: CRITICAL**
+
+### Rule 8.2: Maximum Age
+There is no maximum age limit, but loan term must not extend beyond age 80 without additional review.
+
+**Severity: MEDIUM**
+
+## Section 9: Existing Debt
+
+### Rule 9.1: Existing Mortgage Debt
+Applicants with existing mortgage debt must demonstrate ability to manage both obligations or must sell existing property before closing.
+
+**Severity: HIGH**
+
+### Rule 9.2: Outstanding Collections
+Collections and charge-offs totaling more than ₹100,000 must be paid off or have payment arrangements in place.
+
+**Severity: HIGH**
+
+## Section 10: Special Circumstances
+
+### Rule 10.1: Recent Bankruptcy
+Applicants with bankruptcy discharge within the past 3 years are not eligible unless:
+- Bankruptcy was due to circumstances beyond control (medical, job loss)
+- Credit has been re-established
+- Compensating factors are present
+
+**Severity: CRITICAL**
+
+### Rule 10.2: Foreclosure History
+Applicants with foreclosure within the past 3 years are not eligible unless extenuating circumstances can be documented.
+
+**Severity: CRITICAL**
+
+## Compliance Notes
+
+All rules marked as CRITICAL severity will result in automatic application rejection if violated. HIGH severity violations may be overcome with strong compensating factors. MEDIUM and LOW severity violations are advisory and may be waived with proper documentation.
+
+**Effective Date: January 1, 2026**
+**Review Date: December 31, 2026**
