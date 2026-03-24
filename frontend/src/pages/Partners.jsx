@@ -1,158 +1,81 @@
-﻿import React from 'react';
-import { useShield } from '../context/ShieldContext';
-import { 
-  Network, BarChart3, ShieldCheck, Zap, Layers, Globe, 
-  Cpu, Code, Lock, ArrowRight, CheckCircle2 
-} from 'lucide-react';
-import GlassCard from '../components/GlassCard';
+﻿import React from 'react'
+import { useShield } from '../context/ShieldContext'
+import { Building2, ShieldCheck, Workflow, FileText, ArrowRight } from 'lucide-react'
+import GlassCard from '../components/GlassCard'
+
+const partnerFits = [
+  {
+    title: 'Digital Lending Teams',
+    desc: 'Automate intake, document checks, and explainable credit decisions for operational underwriting flows.',
+  },
+  {
+    title: 'Insurance Operations',
+    desc: 'Run policy checks and risk modeling with transparent premium and recommendation reasoning.',
+  },
+  {
+    title: 'Risk & Compliance Units',
+    desc: 'Use deterministic logs and stage-level outputs for internal review and governance workflows.',
+  },
+]
 
 const Partners = () => {
-  const { setView } = useShield();
-
-  const useCases = [
-    { title: "Digital Lending", desc: "Automate 'New-to-Credit' profiling with alternative data points.", icon: <Zap /> },
-    { title: "Health Insurance", desc: "Dynamic premium calculation based on real-time biomarker extraction.", icon: <Layers /> },
-    { title: "Micro-Finance", desc: "Enable low-cost underwriting for Tier 2 and Tier 3 Indian markets.", icon: <Globe /> }
-  ];
+  const { setView } = useShield()
 
   return (
-    <div className="min-h-screen bg-[#f7faf9] px-6 py-12 max-w-7xl mx-auto">
-      
-      {/* --- HERO SECTION --- */}
-      <div className="grid lg:grid-cols-2 gap-12 items-center mb-24">
-        <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#04221f]/5 border border-[#005b52]/10 text-[10px] font-black uppercase tracking-[0.2em] text-[#04221f] mb-6">
-            <Cpu size={14} className="text-[#04221f]" fill="currentColor" /> Enterprise Nexus
-          </div>
-          <h2 className="text-5xl font-black text-[#04221f] tracking-tighter leading-[0.9] mb-6">
-            Underwriting,<br /><span className="italic text-[#04221f]">at Machine Scale.</span>
-          </h2>
-          <p className="text-lg text-slate-500 font-medium leading-relaxed mb-8 max-w-lg">
-            Daksha is a plug-and-play **Underwriting-as-a-Service (UaaS)** layer. Shift from subjective manual audits to objective, agentic glass-box decisions in milliseconds.
-          </p>
-          <div className="flex gap-4">
-            <button className="bg-[#04221f] text-[#04221f] border-2 border-[#005b52] px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 transition-all">
-              Request API Access
-            </button>
-            <button className="px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs border-2 border-slate-100 text-slate-400 hover:bg-slate-50 transition-all">
-              View Docs
+    <div className="min-h-screen bg-[#f7faf9]">
+      <div className="max-w-7xl mx-auto px-6 pt-36 pb-16">
+        <div className="grid lg:grid-cols-2 gap-8 items-start mb-12">
+          <div>
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold text-[#04221f] bg-[#dbf226]/30 px-4 py-1.5 rounded-full uppercase tracking-[0.2em] mb-5">
+              Partners
+            </span>
+            <h1 className="font-serif text-5xl md:text-6xl text-[#04221f] mb-4" style={{ fontFamily: 'var(--font-serif)' }}>
+              Integrate Daksha in Existing Workflows
+            </h1>
+            <p className="text-[#005b52]/75 leading-relaxed max-w-xl mb-6">
+              Daksha is suited for organizations that need a practical underwriting pipeline with compliance controls, explainable model outputs, and clear audit trails.
+            </p>
+            <button
+              onClick={() => setView('kyc')}
+              className="bg-[#04221f] text-white font-bold px-7 py-3 rounded-full hover:bg-[#dbf226] hover:text-[#04221f] transition-colors"
+            >
+              Start Pilot Flow
             </button>
           </div>
+
+          <GlassCard className="p-7 border border-[#005b52]/10">
+            <h2 className="text-xl font-semibold text-[#04221f] mb-4">Current Platform Capabilities</h2>
+            <ul className="space-y-3 text-sm text-[#005b52]/75">
+              <li className="flex items-start gap-3"><Workflow className="text-[#005b52] mt-0.5" size={16} /> Sequential multi-agent orchestration with status progression</li>
+              <li className="flex items-start gap-3"><FileText className="text-[#005b52] mt-0.5" size={16} /> OCR-assisted document processing and normalized field extraction</li>
+              <li className="flex items-start gap-3"><ShieldCheck className="text-[#005b52] mt-0.5" size={16} /> Rule-based compliance + verification before final recommendation</li>
+              <li className="flex items-start gap-3"><Building2 className="text-[#005b52] mt-0.5" size={16} /> Loan and insurance decision support in one application stack</li>
+            </ul>
+          </GlassCard>
         </div>
 
-        {/* --- PERFORMANCE BENCHMARKS (CONTRAST FIXED) --- */}
-        <div className="bg-[#04221f] rounded-[4rem] p-8 text-white shadow-3xl relative overflow-hidden group isolate">
-          {/* Background Blur Efx */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#04221f]/20 rounded-full blur-[100px] group-hover:scale-150 transition-transform duration-1000 -z-10" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-[#04221f]/80 rounded-full blur-[100px] -z-10" />
-
-          <h3 className="text-xl font-black text-[#391e4f] mb-8 italic tracking-tight flex items-center gap-3 drop-shadow-sm">
-            <BarChart3 className="text-[#391e4f]" /> Performance Benchmarks
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            {/* Box 1: High Contrast Audit Reduction */}
-            <div className="bg-white/5 p-6 rounded-3xl border-2 border-[#005b52]/30 backdrop-blur-md shadow-lg hover:border-[#005b52]/60 transition-all group/box">
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2">Audit Reduction</p>
-              <p className="text-4xl font-black italic text-[#04221f] drop-shadow-[0_0_10px_rgba(244,194,194,0.4)] group-hover/box:scale-110 transition-transform">84%</p>
-            </div>
-
-            {/* Box 2: High Contrast Latency */}
-            <div className="bg-white/5 p-6 rounded-3xl border-2 border-[#005b52]/30 backdrop-blur-md shadow-lg hover:border-[#005b52]/60 transition-all group/box">
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2">Extraction Latency</p>
-              <p className="text-4xl font-black italic text-white drop-shadow-sm group-hover/box:scale-110 transition-transform">~1.2s</p>
-            </div>
-          </div>
-
-          {/* Bottom Progress Bar Container */}
-          <div className="space-y-4 p-4 bg-white/5 rounded-3xl border border-[#005b52]/20">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                <span className="text-white/60">Model Bias Mitigation (EBM)</span>
-                <span className="text-[#04221f] font-black italic">Optimal</span>
-              </div>
-              <div className="h-2 w-full bg-[#04221f]/50 rounded-full overflow-hidden border border-[#005b52]/30">
-                <div className="h-full bg-gradient-to-r from-[#4B0082] to-[#4B0082] w-[98%] animate-pulse shadow-[0_0_15px_#4B0082]" />
-              </div>
-          </div>
-        </div>
-      </div>
-
-      {/* --- SECTOR USE CASES --- */}
-      <div className="mb-24">
-        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-12 text-center">Target Industry Verticals</h4>
-        <div className="grid md:grid-cols-3 gap-8">
-          {useCases.map((uc, i) => (
-            <GlassCard key={i} className="p-8 hover:border-[#005b52]/20 transition-all group">
-              <div className="w-14 h-14 bg-[#04221f]/5 rounded-2xl flex items-center justify-center text-[#04221f] mb-6 group-hover:bg-[#04221f] group-hover:text-[#04221f] transition-all duration-500">
-                {uc.icon}
-              </div>
-              <h5 className="text-lg font-black text-[#04221f] mb-3 uppercase italic">{uc.title}</h5>
-              <p className="text-sm text-slate-500 font-medium leading-relaxed">{uc.desc}</p>
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {partnerFits.map((item) => (
+            <GlassCard key={item.title} className="p-7 border border-[#005b52]/10">
+              <h3 className="text-lg font-semibold text-[#04221f] mb-2">{item.title}</h3>
+              <p className="text-sm text-[#005b52]/70 leading-relaxed">{item.desc}</p>
             </GlassCard>
           ))}
         </div>
-      </div>
 
-      {/* --- API INTEGRATION PREVIEW --- */}
-      <div className="grid lg:grid-cols-2 gap-12 items-center mb-24">
-        <div className="order-2 lg:order-1">
-          <div className="bg-[#1a1a1a] rounded-[3rem] p-8 shadow-2xl relative border-t-8 border-[#005b52]">
-            <div className="flex gap-2 mb-6">
-              <div className="w-3 h-3 rounded-full bg-red-500/20" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
-              <div className="w-3 h-3 rounded-full bg-green-500/20" />
-            </div>
-            <pre className="text-xs font-mono text-pink-200/70 overflow-x-auto leading-relaxed">
-              <code>{`
-// Initialize Daksha SDK
-const daksha = new DakshaClient(process.env.DAKSHA_KEY);
-
-// Push Document for Agentic Audit
-const response = await daksha.audit({
-  type: 'LOAN_APPLICATION',
-  docs: [bank_statement_pdf],
-  mode: 'glass-box'
-});
-
-// Access EBM Reasoning Trace
-console.log(response.reasoning_trace);
-// Output: "Salary stability verified in P3..."
-              `}</code>
-            </pre>
-          </div>
-        </div>
-        <div className="order-1 lg:order-2">
-          <h3 className="text-3xl font-black text-[#04221f] italic tracking-tighter mb-6 underline decoration-[#4B0082] underline-offset-8">Developer-First Integration</h3>
-          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-            Our SDK allows you to plug Daksha into your existing onboarding flow with just 4 lines of code. Get real-time JSON responses containing both the final risk score and the **Reasoning Trace** for your internal CRM.
+        <GlassCard className="p-8 border border-[#005b52]/10 text-center">
+          <h2 className="text-2xl font-semibold text-[#04221f] mb-3">Need a System Walkthrough?</h2>
+          <p className="text-[#005b52]/75 max-w-2xl mx-auto mb-6">
+            We can map your existing intake and underwriting process to the Daksha agent pipeline and define the integration steps.
           </p>
-          <div className="space-y-4">
-            {["RESTful API Architecture", "Webhook Notifications", "Sandbox Environment"].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 font-black text-[10px] uppercase tracking-widest text-[#04221f]">
-                <CheckCircle2 size={16} className="text-[#04221f]" /> {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* --- TRUST & COMPLIANCE --- */}
-      <GlassCard className="p-10 text-center border-b-[16px] border-[#005b52]">
-        <div className="w-16 h-16 bg-[#04221f] rounded-full flex items-center justify-center mx-auto mb-6 text-[#04221f] shadow-xl">
-            <Lock size={32} />
-         </div>
-        <h3 className="text-3xl font-black text-[#04221f] italic tracking-tighter mb-4">Enterprise-Grade Security</h3>
-        <p className="text-slate-500 font-medium max-w-2xl mx-auto mb-8">
-            We operate on a **Zero-Knowledge Architecture**. Daksha extracts features without storing sensitive PII on our servers. Fully compliant with RBI digital lending guidelines and the DPDP Act 2023.
-         </p>
-         <button className="text-[10px] font-black uppercase tracking-[0.4em] text-[#04221f] flex items-center gap-2 mx-auto hover:gap-6 transition-all duration-300">
-            Download Security Whitepaper <ArrowRight size={16} />
+          <button className="inline-flex items-center gap-2 bg-[#04221f] text-white font-semibold px-6 py-3 rounded-full hover:bg-[#dbf226] hover:text-[#04221f] transition-colors">
+            Request Integration Brief <ArrowRight size={16} />
           </button>
-      </GlassCard>
-
+        </GlassCard>
+      </div>
     </div>
-  );
-};
+  )
+}
 
-export default Partners;
+export default Partners
 

@@ -215,38 +215,59 @@ const Analysis = () => {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#04221f] flex flex-col items-center justify-center p-8">
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-8 w-full max-w-xl">
-        <div className="text-center mb-6">
-          <div className="w-3 h-3 bg-[#dbf226] rounded-full animate-pulse mx-auto mb-4" />
-          <h2 className="font-serif text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-serif)' }}>
-            Daksha is analyzing your application
-          </h2>
+    <div className="min-h-screen bg-[#04221f] flex flex-col items-center justify-center p-6 pt-32">
+      <div className="w-full max-w-2xl">
+        {/* Header section */}
+        <div className="text-center mb-12">
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#dbf226]/20 bg-[#dbf226]/5">
+            <div className="w-2 h-2 bg-[#dbf226] rounded-full animate-pulse" />
+            <span className="text-xs font-semibold tracking-wider text-[#dbf226]">ANALYZING</span>
+          </div>
+          <h1 className="font-serif text-5xl md:text-6xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
+            Daksha
+          </h1>
+          <p className="text-lg text-white/60 font-medium">
+            {workflowError ? 'Analysis encountered an issue' : 'Analyzing your application…'}
+          </p>
           {!workflowError && (
-            <p className="text-white/50 text-sm mt-1">{steps[step]}</p>
+            <p className="text-white/40 text-sm mt-3">{steps[step]}</p>
           )}
         </div>
 
-        <div className="space-y-2 mb-6">
-          {agentSteps.map((agent, i) => {
-            const status = i < step ? 'complete' : i === step ? 'running' : 'pending'
-            return <AgentStatus key={agent.name} name={agent.name} description={agent.description} status={status} />
-          })}
-        </div>
+        {/* Main card */}
+        <div className="rounded-3xl p-10 bg-white/[0.02] border border-white/10 backdrop-blur-sm">
+          {/* Progress section */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-white/50">Progress</span>
+              <span className="text-xs font-semibold text-[#dbf226]">{Math.round((step / agentSteps.length) * 100)}%</span>
+            </div>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-[#dbf226] to-[#dbf226]/80 h-full rounded-full transition-all duration-700"
+                style={{ width: `${(step / agentSteps.length) * 100}%` }}
+              />
+            </div>
+          </div>
 
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="bg-[#dbf226] h-full rounded-full transition-all duration-500"
-            style={{ width: `${(step / agentSteps.length) * 100}%` }}
-          />
-        </div>
+          {/* Agent steps */}
+          <div className="space-y-3 mb-8">
+            {agentSteps.map((agent, i) => {
+              const status = i < step ? 'complete' : i === step ? 'running' : 'pending'
+              return <AgentStatus key={agent.name} name={agent.name} description={agent.description} status={status} />
+            })}
+          </div>
 
-        {workflowError && (
-          <div className="mt-4 text-red-400 text-sm text-center">{workflowError}</div>
-        )}
-        {!workflowError && errorCount > 0 && (
-          <div className="mt-4 text-amber-400 text-xs text-center">Connection retry {errorCount}/5</div>
-        )}
+          {/* Error display */}
+          {workflowError && (
+            <div className="mt-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+              <p className="text-red-400 text-sm leading-relaxed">{workflowError}</p>
+            </div>
+          )}
+          {!workflowError && errorCount > 0 && (
+            <div className="mt-4 text-amber-400 text-xs text-center font-medium">Connection retry {errorCount}/5</div>
+          )}
+        </div>
       </div>
     </div>
   );

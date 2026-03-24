@@ -71,127 +71,159 @@ const Result = () => {
   const ocrFlags = ocrPreviewData?._ocr_flags || []
 
   return (
-    <div className="min-h-screen bg-[#f7faf9] py-12">
-      <div className="max-w-3xl mx-auto px-4 space-y-6">
+    <div className="min-h-screen bg-[#f7faf9] py-16 pt-32">
+      <div className="max-w-4xl mx-auto px-6 space-y-8">
 
-        {/* Hero decision card */}
+        {/* Decision Card */}
         {rejected ? (
-          <div className="bg-red-50 border border-red-200 rounded-3xl p-8">
-            <h2 className="font-serif text-3xl font-bold text-red-700 mb-2" style={{ fontFamily: 'var(--font-serif)' }}>Application Not Approved</h2>
-            {fallbackReason && <p className="text-red-600/80 text-sm leading-relaxed">{fallbackReason}</p>}
+          <div className="rounded-3xl p-10 md:p-14 bg-gradient-to-br from-red-50 to-red-50/50 border border-red-200/50 shadow-lg">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={24} className="text-red-600" />
+              </div>
+              <div>
+                <h2 className="font-serif text-3xl md:text-4xl font-bold text-red-700 mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
+                  Application Not Approved
+                </h2>
+                {fallbackReason && <p className="text-red-600/80 text-base leading-relaxed">{fallbackReason}</p>}
+              </div>
+            </div>
           </div>
         ) : isInsurance ? (
-          <div className="bg-[#005b52] text-white rounded-3xl p-8">
-            <p className="text-sm uppercase tracking-widest text-white/60 mb-1">Premium Estimate</p>
-            <p className="text-5xl font-bold text-[#dbf226] mb-3">
-              {insurancePrediction?.premium ? `₹ ${Number(insurancePrediction.premium).toLocaleString('en-IN')}` : 'Pending'}
-            </p>
-            <span className="bg-[#dbf226]/20 text-[#dbf226] border border-[#dbf226]/30 px-3 py-1 rounded-full text-sm font-mono font-bold">Health Risk Assessed</span>
+          <div className="rounded-3xl p-10 md:p-14 bg-gradient-to-br from-[#005b52] to-[#005b52]/90 text-white shadow-2xl">
+            <div className="flex flex-col gap-6">
+              <div>
+                <p className="text-sm uppercase tracking-widest text-white/60 font-semibold mb-3">Premium Estimate</p>
+                <p className="text-6xl md:text-7xl font-bold text-[#dbf226] font-serif mb-4" style={{ fontFamily: 'var(--font-serif)' }}>
+                  {insurancePrediction?.premium ? `₹ ${Number(insurancePrediction.premium).toLocaleString('en-IN')}` : 'Calculating…'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-[#dbf226]" />
+                <span className="text-sm font-semibold text-white/70">Health Risk Assessment Complete</span>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="bg-[#04221f] text-white rounded-3xl p-8">
-            <h2 className="font-serif text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)' }}>Loan Decision</h2>
-            <p className="text-7xl font-bold text-[#dbf226] mb-3">
-              {loanPrediction?.probability ? `${Math.round(Number(loanPrediction.probability) * 100)}%` : 'Pending'}
-            </p>
-            <span className="bg-[#dbf226]/20 text-[#dbf226] border border-[#dbf226]/30 px-3 py-1 rounded-full text-sm font-mono font-bold">
-              {loanPrediction?.approved ? 'Approved' : 'Under Review'}
-            </span>
-            <p className="text-white/50 text-sm mt-3">Approval probability based on your risk profile</p>
+          <div className="rounded-3xl p-10 md:p-14 bg-gradient-to-br from-[#04221f] to-[#04221f]/95 text-white shadow-2xl">
+            <div className="flex flex-col gap-6">
+              <div>
+                <p className="text-sm uppercase tracking-widest text-white/60 font-semibold mb-2">Approval Status</p>
+                <h2 className="font-serif text-3xl md:text-4xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-serif)' }}>
+                  {loanPrediction?.approved ? 'Approved' : 'Under Review'}
+                </h2>
+                <p className="text-7xl md:text-8xl font-bold text-[#dbf226] font-serif" style={{ fontFamily: 'var(--font-serif)' }}>
+                  {loanPrediction?.probability ? `${Math.round(Number(loanPrediction.probability) * 100)}%` : '—'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <div className="w-3 h-3 rounded-full bg-[#dbf226]" />
+                <span className="text-sm font-semibold text-white/70">Approval confidence based on risk profile</span>
+              </div>
+            </div>
           </div>
         )}
 
         {/* AI Explanation */}
         {!rejected && explanation && (
-          <GlassCard className="p-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/50 mb-2">AI Summary</p>
-            <p className="text-[#04221f]/80 leading-relaxed text-sm">{explanation}</p>
-          </GlassCard>
+          <div className="rounded-3xl p-8 bg-white border border-[#005b52]/10 shadow-md">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/60 mb-4">Why This Decision</p>
+            <p className="text-[#04221f]/80 leading-relaxed text-base">{explanation}</p>
+          </div>
         )}
 
-        {/* Feature explanations */}
+        {/* Feature Contributions */}
         {!rejected && featureContributions.length > 0 && (
-          <GlassCard className="p-6 space-y-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/50">What drove this decision</p>
-            {featureContributions.map(({ key, value, meta }) => {
-              const pct = Math.round((Math.abs(value) / maxAbs) * 100)
-              const positive = value > 0
-              const neutral = Math.abs(value) < 0.03
-              return (
-                <div key={key} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {neutral
-                        ? <Minus size={14} className="text-[#005b52]/40" />
-                        : positive
-                          ? <TrendingUp size={14} className="text-[#005b52]" />
-                          : <TrendingDown size={14} className="text-red-500" />
-                      }
-                      <span className="text-sm font-semibold text-[#04221f]">{meta.label}</span>
+          <div className="rounded-3xl p-8 bg-white border border-[#005b52]/10 shadow-md">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/60 mb-8">What Influenced This Decision</p>
+            <div className="space-y-6">
+              {featureContributions.map(({ key, value, meta }) => {
+                const pct = Math.round((Math.abs(value) / maxAbs) * 100)
+                const positive = value > 0
+                const neutral = Math.abs(value) < 0.03
+                return (
+                  <div key={key} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {neutral
+                          ? <Minus size={16} className="text-[#005b52]/40 shrink-0" />
+                          : positive
+                            ? <TrendingUp size={16} className="text-[#005b52] shrink-0" />
+                            : <TrendingDown size={16} className="text-red-500 shrink-0" />
+                        }
+                        <span className="text-sm font-semibold text-[#04221f]">{meta.label}</span>
+                      </div>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full shrink-0 ${
+                        neutral ? 'bg-[#005b52]/10 text-[#005b52]/60'
+                        : positive ? 'bg-[#005b52]/10 text-[#005b52]'
+                        : 'bg-red-50 text-red-600'
+                      }`}>
+                        {positive ? '+' : ''}{value.toFixed(2)}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      neutral ? 'bg-[#005b52]/10 text-[#005b52]/60'
-                      : positive ? 'bg-[#005b52]/10 text-[#005b52]'
-                      : 'bg-red-50 text-red-600'
-                    }`}>
-                      {positive ? '+' : ''}{value.toFixed(2)}
-                    </span>
+                    {/* Bar */}
+                    <div className="h-2 w-full bg-[#005b52]/8 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: neutral ? '#005b52' : positive ? '#005b52' : '#ef4444',
+                          opacity: neutral ? 0.3 : 0.85,
+                        }}
+                      />
+                    </div>
+                    {/* Explanation */}
+                    <p className="text-xs text-[#005b52]/60 leading-relaxed pl-6">{meta.explain(value)}</p>
                   </div>
-                  {/* Bar */}
-                  <div className="h-2 w-full bg-[#005b52]/8 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: neutral ? '#005b52' : positive ? '#005b52' : '#ef4444',
-                        opacity: neutral ? 0.3 : 0.85,
-                      }}
-                    />
-                  </div>
-                  {/* Plain-English explanation */}
-                  <p className="text-xs text-[#005b52]/60 leading-relaxed">{meta.explain(value)}</p>
-                </div>
-              )
-            })}
-          </GlassCard>
+                )
+              })}
+            </div>
+          </div>
         )}
 
-        {/* OCR extracted data summary */}
+        {/* OCR Data Summary */}
         {ocrSummary.length > 0 && (
-          <GlassCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/50">OCR Extracted Data</p>
+          <div className="rounded-3xl p-8 bg-white border border-[#005b52]/10 shadow-md">
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#005b52]/60">Document Data Extracted</p>
               {ocrConfidence && (
-                <span className="text-xs bg-[#dbf226]/40 text-[#04221f] px-2 py-0.5 rounded-full font-semibold">
+                <span className="text-xs bg-[#005b52]/10 text-[#005b52] px-3 py-1 rounded-full font-semibold">
                   {Math.round(ocrConfidence * 100)}% confidence
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4 mb-6">
               {ocrSummary.map(({ label, value }) => (
-                <div key={label} className="bg-[#f7faf9] rounded-xl px-4 py-3 border border-[#005b52]/10">
-                  <p className="text-xs text-[#005b52]/50 font-medium mb-0.5">{label}</p>
-                  <p className="text-sm font-semibold text-[#04221f]">
+                <div key={label} className="rounded-2xl px-4 py-4 bg-[#f7faf9] border border-[#005b52]/5">
+                  <p className="text-xs text-[#005b52]/50 font-semibold mb-1.5">{label}</p>
+                  <p className="text-sm font-bold text-[#04221f]">
                     {typeof value === 'number' ? `₹ ${Number(value).toLocaleString('en-IN')}` : String(value)}
                   </p>
                 </div>
               ))}
             </div>
             {ocrFlags.length > 0 && (
-              <div className="mt-4 space-y-1.5">
-                <p className="text-xs font-semibold text-amber-700 flex items-center gap-1"><AlertTriangle size={12} /> Document flags</p>
-                {ocrFlags.map((f, i) => <p key={i} className="text-xs text-amber-600 pl-4">• {f}</p>)}
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/50">
+                <p className="text-xs font-semibold text-amber-700 flex items-center gap-2 mb-3">
+                  <AlertTriangle size={14} /> Document Flags
+                </p>
+                <ul className="space-y-1.5">
+                  {ocrFlags.map((f, i) => <li key={i} className="text-xs text-amber-600 pl-5">• {f}</li>)}
+                </ul>
               </div>
             )}
-          </GlassCard>
+          </div>
         )}
 
-        <button
-          onClick={() => setView('landing')}
-          className="block mx-auto bg-[#04221f] text-white font-bold px-8 py-3 rounded-full hover:bg-[#dbf226] hover:text-[#04221f] transition-all duration-300 mt-4"
-        >
-          Start New Application
-        </button>
+        {/* Action Button */}
+        <div className="text-center pt-4">
+          <button
+            onClick={() => setView('landing')}
+            className="bg-[#04221f] text-white font-bold px-8 py-3 rounded-full hover:bg-[#dbf226] hover:text-[#04221f] hover:-translate-y-0.5 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            Start New Application
+          </button>
+        </div>
       </div>
     </div>
   )
