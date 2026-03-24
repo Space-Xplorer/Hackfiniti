@@ -3,6 +3,18 @@ import { useShield } from '../context/ShieldContext'
 import AgentStatus from '../components/AgentStatus'
 import { createApplication, submitWorkflow, getWorkflowStatus, getWorkflowResults } from '../utils/api'
 
+const agentSteps = [
+  { name: 'KYC Agent', description: 'Verifying identity…' },
+  { name: 'Onboarding Agent', description: 'OCR extraction…' },
+  { name: 'Rules Agent', description: 'Checking underwriting rules…' },
+  { name: 'Fraud Agent', description: 'OCR fraud scan…' },
+  { name: 'Feature Engineering', description: 'Deriving risk features…' },
+  { name: 'Compliance Agent', description: 'Regulatory checks…' },
+  { name: 'Underwriting Agent', description: 'Model inference…' },
+  { name: 'Verification Agent', description: 'Sanity checks…' },
+  { name: 'Transparency Agent', description: 'Explanation draft…' },
+]
+
 const Analysis = () => {
   const {
     setView,
@@ -32,18 +44,6 @@ const Analysis = () => {
   useEffect(() => {
     appIdRef.current = applicationId || null;
   }, [applicationId]);
-
-  const agentSteps = [
-    { name: 'KYC Agent', description: 'Verifying identity…' },
-    { name: 'Onboarding Agent', description: 'OCR extraction…' },
-    { name: 'Rules Agent', description: 'Checking underwriting rules…' },
-    { name: 'Fraud Agent', description: 'OCR fraud scan…' },
-    { name: 'Feature Engineering', description: 'Deriving risk features…' },
-    { name: 'Compliance Agent', description: 'Regulatory checks…' },
-    { name: 'Underwriting Agent', description: 'Model inference…' },
-    { name: 'Verification Agent', description: 'Sanity checks…' },
-    { name: 'Transparency Agent', description: 'Explanation draft…' },
-  ]
 
   const steps = agentSteps.map((a) => a.description)
 
@@ -170,8 +170,6 @@ const Analysis = () => {
     setWorkflowResult,
     setWorkflowError,
     setView,
-    steps.length,
-    isRunning
   ]);
 
   return (

@@ -32,12 +32,12 @@ function NavigationSource() {
 
 function AppShell() {
   const { view } = useShield()
-  const scrollViews = new Set(['config', 'upload', 'prelim', 'kyc', 'partner', 'about', 'how', 'result'])
+  const fixedScrollViews = new Set(['landing', 'partner', 'about', 'how', 'result', 'analysis'])
 
   return (
-    <div className="h-screen bg-[#FAF9F6] flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-[#FAF9F6]">
       <Navbar />
-      <main className={`flex-1 min-h-0 ${scrollViews.has(view) ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+      <main className={fixedScrollViews.has(view) ? '' : 'pt-20'}>
         <NavigationSource />
       </main>
     </div>

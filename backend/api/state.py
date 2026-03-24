@@ -7,6 +7,7 @@ USERS_DB: dict[str, dict[str, Any]] = {}
 APPLICATIONS_DB: dict[str, dict[str, Any]] = {}
 WORKFLOW_DB: dict[str, dict[str, Any]] = {}
 WORKFLOW_EVENTS: dict[str, list[dict[str, Any]]] = {}
+OTP_DB: dict[str, dict[str, Any]] = {}  # mobile -> {otp, expires_at}
 
 
 def create_token(email: str) -> str:

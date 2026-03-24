@@ -8,4 +8,6 @@ export {
   submitWorkflow,
   getWorkflowStatus,
   getWorkflowResults,
+  sendOtp,
+  verifyOtp,
 } from '../utils/api'
