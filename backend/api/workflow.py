@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from api.state import APPLICATIONS_DB, WORKFLOW_DB, WORKFLOW_EVENTS, new_id, parse_token
 
-router = APIRouter(prefix="/workflow", tags=["workflow"])
+router = APIRouter(tags=["workflow"])
 
 # Expected document types per service
 REQUIRED_DOC_TYPES = {
