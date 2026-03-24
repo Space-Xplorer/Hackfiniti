@@ -28,6 +28,20 @@ const requestJson = async (path, options = {}) => {
   return data;
 };
 
+export const sendOtp = async (mobile) => {
+  return requestJson("/auth/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ mobile })
+  });
+};
+
+export const verifyOtp = async (mobile, otp) => {
+  return requestJson("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ mobile, otp })
+  });
+};
+
 export const registerUser = async (payload) => {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",

@@ -1,321 +1,432 @@
-# Daksha - AI-Powered Underwriting Platform
+# Daksha — AI-Powered Loan & Insurance Underwriting Platform
 
-Daksha is a full-stack, multi-agent underwriting platform for loan and health insurance applications. It combines browser-side OCR (via Puter.js), a multi-step declaration form, a simulated AI agent pipeline, and an explainable decision engine that shows exactly what drove every approval or rejection.
+Daksha is a full-stack web application that automates loan and health insurance underwriting using document OCR, rule-based validation, and ML-based risk scoring. It provides applicants with a transparent, step-by-step decision with feature-level explanations, a risk scorecard, and a personalised improvement plan.
 
 ---
 
-## Tech Stack
+## Architecture Overview
 
-| Layer | Technology |
+```
+frontend/          React + Vite + Tailwind SPA (single-page, view-based routing)
+backend/           FastAPI REST API (in-memory state, no DB required for demo)
+  api/             Route handlers
+  agents/          LangGraph agent definitions (not in active call path — future)
+  graph/           LangGraph workflow definition (future integration)
+  ml/              EBM model loaders and scorers
+  ml_models/       Serialised .pkl model files
+  ocr/             OCR service abstraction (mock + production)
+  rules/           Plain-text underwriting rule files (IRDAI, USDA)
+  schemas/         Pydantic request/response schemas
+  services/        Business logic services
+  core/            Config, database, security utilities
+```
+
+---
+
+## Application Flow (User Journey)
+
+```
+Landing → KYC → Selection → Preliminary → Upload → Config (Declaration) → Analysis → Result
+```
+
+Each step is a React view controlled by `ShieldContext`. There is no URL routing — `setView(name)` drives navigation.
+
+---
+
+## Frontend Pages
+
+### `Landing.jsx`
+Entry point. Displays product branding and a "Get Started" CTA that navigates to `kyc`.
+
+### `KYC.jsx`
+**Purpose:** Identity verification and account creation.
+
+**Inputs (user-entered):**
+| Field | Type | Validation |
+|---|---|---|
+| Full Name | text | Required |
+| Aadhaar Number | text | Exactly 12 digits |
+
+**What it does:**
+1. Derives a synthetic email (`<aadhaar>@daksha.local`) and password (`daksha-<aadhaar>`) — no real email needed.
+2. Calls `POST /api/auth/register` — silently ignores 409 (already exists).
+3. Calls `POST /api/auth/login` → stores `access_token` in `ShieldContext`.
+4. Calls `POST /api/workflow/verify-kyc` → stores returned `kyc_data` (name, DOB, CIBIL score, gender, address).
+5. Navigates to `selection`.
+
+**State written:** `authToken`, `kycData`, `userData`
+
+---
+
+### `Selection.jsx`
+**Purpose:** Choose service type.
+
+**Options:**
+- Loan Shield → sets `service = 'loan'`, navigates to `prelim`
+- Life Shield → sets `service = 'insurance'`, navigates to `prelim`
+
+**State written:** `service`
+
+---
+
+### `Preliminary.jsx`
+**Purpose:** Capture minimal loan or insurance parameters before document upload.
+
+**Loan inputs:**
+| Field | Required |
 |---|---|
-| Frontend | React 18, Vite, Tailwind CSS v3 |
-| Routing | Context-based view switching (ShieldContext) |
-| OCR | Puter.js (puter.ai.img2txt + puter.ai.chat) - runs in browser, no API key |
-| Backend | FastAPI (Python 3.11+), Uvicorn |
-| Auth | In-memory token store (token::email scheme) |
-| Storage | In-memory Python dicts (api/state.py) - no database |
-| ML Models | EBM (Explainable Boosting Machine) .pkl files for loan + insurance |
-| Fonts | Crimson Text (serif) + Hanken Grotesk (sans) via Google Fonts |
-| Icons | lucide-react |
+| Loan Type (home / personal) | Yes |
+| Loan Amount Requested (₹) | Yes |
+| Tenure (months) | Yes |
+| Property Value (₹) | Only for home loans |
+
+**Insurance inputs:**
+| Field | Required |
+|---|---|
+| Age | Yes |
+| City | Yes |
+| Sum Insured (₹) | Yes |
+
+**State written:** `applicantData`, `loanType`
 
 ---
 
-## Running Locally
+### `Upload.jsx`
+**Purpose:** Document upload with browser-side OCR via Puter.js.
 
-Backend:
-```bash
-cd backend
-pip install -r requirements.txt
-python -m uvicorn main:app --reload --port 8000
-```
+**Required documents — Loan:**
+| Document | Type key | Required |
+|---|---|---|
+| Bank Statement (6 months) | `bank_statement` | Yes |
+| Salary Slip (last 3 months) | `salary_slip` | Yes |
+| ID Proof (Aadhaar) | `aadhaar_card` | Yes |
+| Existing Loan Statements | `loan_statement` | No |
+| Property Documents | `property_document` | Home loans only |
 
-Frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+**Required documents — Insurance:**
+| Document | Type key | Required |
+|---|---|---|
+| Medical Reports | `diagnostic_report` | Yes |
+| ID Proof (Aadhaar) | `aadhaar_card` | Yes |
+| Income Proof (ITR) | `itr` | No |
 
-Health check: `GET http://localhost:8000/health` returns `{"status": "ok"}`
+**File constraints:** PDF, JPG, PNG; max 5 MB per file.
 
----
+**OCR pipeline (Puter.js path — when `window.puter` is available):**
+1. `ocrDocument(file, docType)` in `utils/ocr.js`:
+   - Calls `puter.ai.img2txt(file)` → raw text
+   - Calls `puter.ai.chat(prompt + rawText)` with a document-type-specific structured extraction prompt
+   - Returns `{ docType, extracted, rawText, error }`
+2. `validateOcrResults(ocrResults)` cross-validates all scanned documents:
+   - Name consistency across salary slip, bank statement, and Aadhaar
+   - Income consistency: salary slip net income vs bank recurring deposits (>20% diff = flag)
+   - Document freshness: salary slip must be ≤3 months old; bank statement ≤6 months old
+   - Computes a `confidence_score` (starts at 1.0, deducted per flag and missing field)
+3. Merged OCR data is stored in `ocrPreviewData` with special keys:
+   - `_ocr_confidence` — float 0–1
+   - `_ocr_flags` — array of consistency warning strings
+   - `_ocr_freshness` — boolean
 
-## Project Structure
+**Fallback (no Puter.js):** Sends raw base64 documents to `POST /api/workflow/preview-ocr` for server-side validation and mock extraction.
 
-```
-daksha/
-├── backend/
-│   ├── main.py                  # FastAPI app, CORS, router registration
-│   ├── api/
-│   │   ├── state.py             # In-memory stores + token helpers
-│   │   ├── auth.py              # Register + login endpoints
-│   │   ├── applications.py      # Application CRUD
-│   │   └── workflow.py          # KYC, OCR, submit, status, results, stream
-│   ├── core/
-│   │   ├── config.py            # Settings (env vars)
-│   │   ├── security.py          # bcrypt + JWT helpers (unused in active flow)
-│   │   └── database.py          # SQLAlchemy setup (unused in active flow)
-│   ├── agents/                  # LangGraph agent stubs
-│   ├── graph/                   # LangGraph workflow graph
-│   ├── ml/                      # EBM model loaders
-│   ├── ml_models/               # .pkl model files
-│   ├── ocr/                     # OCR service stubs
-│   ├── rules/                   # IRDAI + USDA rule text files
-│   ├── schemas/                 # Pydantic schemas
-│   ├── services/                # Service layer stubs
-│   └── requirements.txt
-└── frontend/
-    ├── index.html               # Puter.js CDN script tag
-    └── src/
-        ├── App.jsx              # ShieldProvider + view router
-        ├── main.jsx             # React root mount
-        ├── index.css            # Tailwind directives + CSS variables
-        ├── context/
-        │   ├── ShieldContext.jsx # Global app state (single source of truth)
-        │   └── AppContext.jsx    # Re-export of ShieldContext
-        ├── pages/               # Landing, KYC, Selection, Preliminary, Upload,
-        │                        # Config, Analysis, Result, HowItWorks, Partners, About
-        ├── components/          # Navbar, AgentStatus, GlassCard, FeatureChart
-        ├── hooks/               # useAuth, useWorkflowStream
-        └── utils/
-            ├── api.js           # All backend fetch calls
-            └── ocr.js           # Browser-side Puter.js OCR
-```
+**OCR fields extracted per document type:**
+
+| Doc type | Extracted fields |
+|---|---|
+| `bank_statement` | account_name, current_balance, avg_monthly_balance, recurring_salary_deposits, statement_date, bank_name |
+| `salary_slip` | employee_name, employer_name, net_income, slip_date |
+| `loan_statement` | current_emi, outstanding_balance, lender_name |
+| `property_document` | property_value, owner_name, property_address |
+| `aadhaar_card` | full_name, dob, id_number |
+| `diagnostic_report` | patient_name, report_date, diagnosis |
+| `itr` | taxpayer_name, annual_income, assessment_year |
+
+**State written:** `uploadedDocs`, `uploadedDocuments`, `ocrPreviewData`
 
 ---
 
-## Authentication
+### `Config.jsx` (Declaration Form)
+**Purpose:** Full applicant declaration form, pre-filled from OCR and KYC data. Fields populated by OCR are highlighted with a yellow "OCR" badge.
 
-The active auth flow uses a simplified in-memory token scheme (not JWT in production).
+**Loan fields:**
 
-On the KYC page, the user enters their name and Aadhaar number. The frontend derives a synthetic email and password:
-- email = `<aadhaar>@daksha.local`
-- password = `daksha-<aadhaar>`
+*Personal Profile:*
+| Field | Required |
+|---|---|
+| Age | Yes |
+| Gender | Yes |
+| City | Yes |
+| Marital Status | No |
+| Employment Type (Salaried / Self-employed) | No |
+| Employer Category (Govt / MNC / Pvt Ltd / Small firm) | No |
+| Total Work Experience (years) | No |
+| Current Company Tenure (years) | No |
+| Residential Status | No |
 
-It calls register (silently ignores 409 if already exists), then login to get a token. The token format is `token::<email>`. All subsequent API calls send this as `Authorization: Bearer <token>`. `parse_token()` in `api/state.py` strips the prefix to recover the email. No JWT signing, no expiry.
+*Loan Details:*
+| Field | Required |
+|---|---|
+| Loan Type | Yes |
+| Loan Amount Requested (₹) | Yes |
+| Tenure (months) | Yes |
+| Property Value (₹) | Home loans |
+| Property City | No |
+| Property Type | No |
 
-### POST /api/auth/register
+*Financial Declaration:*
+| Field | Required | OCR-prefilled |
+|---|---|---|
+| Declared Monthly Income (₹) | Yes | Yes (from salary slip / bank statement) |
+| Declared Existing EMI (₹) | Yes | Yes (from loan statement) |
+| Credit Score | Yes | No (manual entry) |
 
-Input:
+**Insurance fields:**
+
+*Health Profile:* Age, Gender, City, Family Size, Height (cm), Weight (kg), Smoker (Yes/No), Alcohol (None/Moderate/High)
+
+*Medical History:* Pre-existing Diseases (multi-select: Diabetes, Hypertension, Asthma, Cardiac, Thyroid, None), Family History (text)
+
+*Coverage:* Sum Insured (₹), Deductible (₹)
+
+**State written:** `applicantData`, `userData`
+
+---
+
+### `Analysis.jsx`
+**Purpose:** Workflow execution and progress display.
+
+**Agent steps shown (UI only — simulated progress):**
+1. KYC Agent — Verifying identity
+2. Onboarding Agent — OCR extraction
+3. Rules Agent — Checking underwriting rules
+4. Fraud Agent — OCR fraud scan
+5. Feature Engineering — Deriving risk features
+6. Compliance Agent — Regulatory checks
+7. Underwriting Agent — Model inference
+8. Verification Agent — Sanity checks
+9. Transparency Agent — Explanation draft
+
+**What it does:**
+1. Calls `POST /api/applications/` to create an application record.
+2. Calls `POST /api/workflow/submit/{app_id}` to trigger processing.
+3. Polls `GET /api/workflow/status/{app_id}` every 2 seconds (max 5 retries on error).
+4. On `status = completed`, calls `GET /api/workflow/results/{app_id}` and navigates to `result`.
+
+**State written:** `applicationId`, `requestId`, `workflowStatus`, `workflowResult`
+
+---
+
+### `Result.jsx`
+**Purpose:** Full decision display with 5 sections.
+
+**Section 1 — Hero Decision Card**
+- Loan: approval probability (0–100%), approved/under-review badge, risk grade (A–E)
+- Insurance: estimated annual premium (₹), risk category (Low/Medium/High)
+- Rejected: red card with rejection reason
+
+**Section 2 — AI Summary**
+Plain-English explanation of the decision, generated by the backend from the applicant's actual values (CIBIL, FOIR, LTV, BMI, smoking status, etc.).
+
+**Section 3 — What Drove This Decision (Feature Contributions)**
+Each feature is shown with:
+- Label (human-readable name)
+- Signed contribution value (positive = helped, negative = hurt)
+- Proportional bar chart
+- Plain-English explanation of why that value helped or hurt
+
+Loan features: Credit Score, Monthly Income, EMI Burden, Loan-to-Value Ratio, Employment Stability, Debt-to-Income Ratio
+
+Insurance features: Age, Smoking Status, BMI/Weight, Pre-existing Conditions, Family Medical History, Sum Insured
+
+**Section 4 — OCR Extracted Data**
+Displays the data that was read from uploaded documents:
+- Monthly Income, Existing EMI, Property Value, Employer, Name (ID), Date of Birth
+- OCR confidence score badge
+- Document flags (name mismatches, income mismatches, stale documents) shown as warnings
+
+**Section 5 — Start New Application button**
+
+---
+
+## Backend API
+
+Base URL: `http://localhost:8000/api`
+
+All protected endpoints require `Authorization: Bearer <token>` header.
+
+---
+
+### Auth
+
+#### `POST /api/auth/register`
+**Input:**
 ```json
 { "email": "string", "password": "string", "name": "string (optional)" }
 ```
-Output (200):
+**Output:**
 ```json
-{
-  "message": "User registered successfully",
-  "user": { "id": "1", "email": "...", "name": "...", "role": "user" }
-}
+{ "message": "User registered successfully", "user": { "id", "email", "name", "role" } }
 ```
-Error (409): `{ "detail": "User already exists" }`
+**Errors:** 409 if email already exists.
 
-### POST /api/auth/login
+---
 
-Input:
+#### `POST /api/auth/login`
+**Input:**
 ```json
 { "email": "string", "password": "string" }
 ```
-Output (200):
+**Output:**
 ```json
 {
   "message": "Login successful",
-  "access_token": "token::<email>",
-  "refresh_token": "token::<email>",
-  "user": { "id": "1", "email": "...", "name": "...", "role": "user" }
+  "access_token": "string",
+  "refresh_token": "string",
+  "user": { "id", "email", "name", "role" }
 }
 ```
-Error (401): `{ "detail": "Invalid credentials" }`
+**Errors:** 401 if credentials invalid.
+
+Token format: `<email>:<timestamp>` base64-encoded (stateless, no JWT library in active path).
 
 ---
 
-## In-Memory State (api/state.py)
+### Applications
 
-Four global dicts hold all runtime data. All data is lost on backend restart.
+#### `POST /api/applications/`
+Creates a new application record (status: `draft`).
 
-| Dict | Key | Value shape |
-|---|---|---|
-| `USERS_DB` | email (str) | `{ id, email, password, name, role }` |
-| `APPLICATIONS_DB` | app_id (str) | `{ id, user_email, status, request_type, loan_type, applicant_data, uploaded_documents, ... }` |
-| `WORKFLOW_DB` | app_id (str) | `{ status, request_id, rejected, loan_prediction, insurance_prediction, ... }` |
-| `WORKFLOW_EVENTS` | app_id (str) | list of `{ agent, status }` dicts |
-
-Helper functions:
-- `create_token(email)` → `"token::<email>"`
-- `parse_token(token)` → email string or None
-- `new_id(prefix)` → `"<prefix>_<12-char uuid hex>"`
-
----
-
-## Applications API
-
-All endpoints require `Authorization: Bearer <token>`.
-
-### POST /api/applications/
-
-Creates a new application in APPLICATIONS_DB with status `"draft"`.
-
-Input:
+**Input:**
 ```json
 {
   "request_type": "loan | insurance",
   "loan_type": "home | personal | null",
   "submitted_name": "string",
-  "submitted_dob": "YYYY-MM-DD",
+  "submitted_dob": "string",
   "submitted_aadhaar": "string",
-  "applicant_data": { "...all form fields" },
+  "applicant_data": { ...all declaration form fields... },
   "uploaded_documents": [
     { "type": "bank_statement", "name": "file.pdf", "mime_type": "application/pdf", "content_base64": "..." }
   ]
 }
 ```
-Output:
+**Output:**
 ```json
-{ "message": "Application created", "application": { "...full application object" } }
-```
-
-### GET /api/applications/
-
-Returns all applications belonging to the authenticated user.
-
-Output:
-```json
-{ "items": [ "...application objects" ] }
+{ "message": "Application created", "application": { "id", "user_email", "status", "request_type", ... } }
 ```
 
 ---
 
-## Workflow API
+#### `GET /api/applications`
+Lists all applications for the authenticated user.
 
-### POST /api/workflow/verify-kyc
-
-Validates Aadhaar format and returns mock KYC data including a mock CIBIL score of 742.
-
-Input:
+**Output:**
 ```json
-{ "name": "string", "aadhaar": "123456789012", "dob": "YYYY-MM-DD" }
+{ "items": [ { ...application objects... } ] }
 ```
-Validation: name and aadhaar required, aadhaar must be exactly 12 digits.
 
-Output (200):
+---
+
+### Workflow
+
+#### `POST /api/workflow/verify-kyc`
+**Input:**
+```json
+{ "name": "string", "aadhaar": "12-digit string", "dob": "string (optional)" }
+```
+**Output:**
 ```json
 {
   "verified": true,
   "kyc_data": {
     "name": "string",
-    "aadhaar_number": "123456789012",
-    "dob": "YYYY-MM-DD",
+    "aadhaar_number": "string",
+    "dob": "string",
     "cibil_score": 742,
     "gender": "Male",
     "address": "Mock Address, India"
   }
 }
 ```
-Error (400): `{ "detail": "Aadhaar must be exactly 12 digits" }`
+**Errors:** 400 if name/Aadhaar missing or Aadhaar not 12 digits.
 
 ---
 
-### POST /api/workflow/preview-ocr
+#### `POST /api/workflow/preview-ocr`
+Validates uploaded documents and extracts fields. Supports two paths:
 
-Two-path endpoint. If the frontend sends `client_ocr` (Puter.js pre-extracted JSON), it runs server-side cross-validation. Otherwise it falls back to raw document validation.
-
-**Path A — client_ocr present (Puter.js flow)**
-
-Input:
+**Path A — Client OCR JSON (preferred):**
+Input includes `client_ocr` with pre-extracted data from Puter.js.
 ```json
 {
-  "request_type": "loan | insurance",
-  "declared_data": { "...applicant form fields" },
-  "uploaded_documents": [ "...base64 docs" ],
+  "request_type": "loan",
+  "declared_data": { ...form fields... },
   "client_ocr": {
-    "extracted_data": {
-      "monthly_income": 85000,
-      "existing_emi": 5000,
-      "property_value": 5000000,
-      "employer_name": "Acme Corp"
-    },
-    "document_freshness_passed": true,
-    "consistency_flags": [],
-    "confidence_score": 0.92,
+    "extracted_data": { "monthly_income": 85000, "existing_emi": 5000, ... },
     "raw_by_type": {
-      "salary_slip": { "employee_name": "...", "employer_name": "...", "net_income": 85000, "slip_date": "2026-01-01" },
+      "salary_slip": { "employee_name": "...", "net_income": 85000, "slip_date": "2026-01-01" },
       "bank_statement": { "account_name": "...", "recurring_salary_deposits": 84000, "statement_date": "2026-02-01" },
-      "aadhaar_card": { "full_name": "...", "dob": "1993-05-10", "id_number": "..." }
-    }
+      "aadhaar_card": { "full_name": "...", "dob": "..." }
+    },
+    "confidence_score": 0.92
   }
 }
 ```
 
-Server-side cross-validation (`_cross_validate_ocr`):
-- Name match: salary slip employee name = bank account name = ID proof full name (case-insensitive)
-- Income match: salary slip net income vs bank recurring deposits — flags if difference > 20%
-- Freshness: salary slip must be within 3 months, bank statement within 6 months
-
-Output (200):
+**Path B — Raw documents (fallback):**
 ```json
 {
-  "ocr_extracted_data": { "...merged prefill fields" },
-  "declared_prefill": { "...merged prefill fields" },
-  "consistency_flags": [ "Name mismatch: ...", "Income mismatch: ..." ],
+  "request_type": "loan",
+  "declared_data": { ... },
+  "uploaded_documents": [ { "type": "...", "content_base64": "...", "mime_type": "...", "name": "..." } ]
+}
+```
+
+**Output (both paths):**
+```json
+{
+  "ocr_extracted_data": { "declared_monthly_income": 85000, "declared_existing_emi": 5000, "name": "...", "dob": "..." },
+  "declared_prefill": { ...same as above, merged with declared_data... },
+  "consistency_flags": [ "Name mismatch: Salary slip 'X' ≠ Bank account 'Y'" ],
   "document_freshness_passed": true,
   "confidence_score": 0.92
 }
 ```
 
-**Path B — raw documents fallback**
+**Server-side cross-validation checks:**
+- Name consistency across salary slip, bank statement, and Aadhaar
+- Income consistency: >20% difference between salary slip and bank deposits triggers a flag
+- Salary slip freshness: must be ≤3 months old
+- Bank statement freshness: must be ≤6 months old
 
-Validates each uploaded document:
-- Checks required doc types are present (`bank_statement`, `salary_slip`, `aadhaar_card` for loan; `diagnostic_report`, `aadhaar_card` for insurance)
-- Decodes base64 and checks file size — rejects files under 500 bytes
-- Validates MIME type (PDF, JPG, PNG only)
-- Computes simulated confidence score per document based on file size (range 10–98%)
+**Document size validation (Path B):**
+- Files under 500 bytes are rejected as empty/corrupt
+- Unsupported MIME types are rejected
+- OCR confidence simulated from file size: `50 + (size/10000)*20 ± 5`, capped 10–98%
+- Documents with <40% confidence trigger a 422 error
 
-Error (422):
-```json
-{
-  "detail": {
-    "message": "Document validation failed",
-    "errors": [ "Missing required documents: bank statement", "'file.txt' has unsupported format..." ],
-    "confidence_scores": { "bank_statement": 0.0 }
-  }
-}
-```
-
-Output (200):
-```json
-{
-  "ocr_extracted_data": { "...prefilled fields" },
-  "declared_prefill": { "...prefilled fields" },
-  "ocr_documents": [ "...uploaded docs" ],
-  "confidence_scores": { "bank_statement": 87.3, "aadhaar_card": 91.0 },
-  "consistency_flags": [],
-  "document_freshness_passed": true
-}
-```
+**Errors:** 400 if no documents, 422 with `{ message, errors[], confidence_scores{} }` on validation failure.
 
 ---
 
-### POST /api/workflow/submit/{application_id}
+#### `POST /api/workflow/submit/{application_id}`
+Triggers workflow processing. Sets application status to `completed` and creates a workflow record.
 
-Marks the application as completed and populates WORKFLOW_DB with mock results.
-
-Output (200):
+**Output:**
 ```json
-{ "message": "Workflow started", "app_id": "app_abc123", "request_id": "req_xyz456", "status": "processing" }
+{ "message": "Workflow started", "app_id": "...", "request_id": "req_...", "status": "processing" }
 ```
-Errors: 404 (not found), 403 (wrong user), 400 (already submitted)
+**Errors:** 404 if app not found, 403 if not owner, 400 if already submitted.
 
 ---
 
-### GET /api/workflow/status/{application_id}
-
-Returns current workflow status from WORKFLOW_DB.
-
-Output:
+#### `GET /api/workflow/status/{application_id}`
+**Output:**
 ```json
 {
-  "app_id": "app_abc123",
+  "app_id": "...",
   "status": "completed",
-  "request_id": "req_xyz456",
+  "request_id": "req_...",
   "rejected": false,
   "rejection_reason": null,
   "loan_prediction": { "approved": true, "probability": 0.84 },
@@ -325,369 +436,334 @@ Output:
 
 ---
 
-### GET /api/workflow/results/{application_id}
+#### `GET /api/workflow/results/{application_id}`
+Returns the full decision payload computed from `applicant_data`.
 
-Returns full results including model feature contributions.
-
-Output:
+**Output:**
 ```json
 {
-  "app_id": "app_abc123",
-  "request_id": "req_xyz456",
+  "app_id": "string",
+  "request_id": "string",
+  "completed": true,
+
   "loan": {
     "prediction": { "approved": true, "probability": 0.84 },
-    "explanation": "Income stability and credit profile support approval.",
-    "description": "Loan approved with strong affordability ratio."
+    "explanation": "Your application has been approved with 84% confidence (Grade B). Your CIBIL score of 742...",
+    "description": "Decision: APPROVED | Probability: 84% | Grade: B"
   },
+
   "insurance": {
     "prediction": { "premium": 15300 },
-    "explanation": "Health and lifestyle profile support moderate premium.",
-    "description": "Premium estimated from age and reported health profile."
+    "explanation": "Your health and lifestyle profile places you in the Low risk category...",
+    "description": "Risk: Low | Annual premium: ₹15,300"
   },
-  "ocr_confidence_scores": { "bank_statement": 92.0, "aadhaar_card": 96.0 },
+
   "model_output": {
     "loan": {
       "feature_contributions": {
-        "credit_score": 0.38, "monthly_income": 0.29, "emi_load": -0.17,
-        "loan_to_value": -0.12, "employment_stability": 0.21, "debt_to_income": -0.09
+        "credit_score": 0.37,
+        "monthly_income": 0.21,
+        "emi_load": 0.09,
+        "loan_to_value": -0.06,
+        "employment_stability": 0.12,
+        "debt_to_income": -0.05
       }
     },
     "insurance": {
       "feature_contributions": {
-        "age": -0.22, "smoker": -0.31, "bmi": -0.18,
-        "pre_existing_diseases": -0.14, "family_history": -0.08, "sum_insured": 0.11
+        "age": -0.08,
+        "smoker": 0.05,
+        "bmi": -0.03,
+        "pre_existing_diseases": 0.05,
+        "family_history": 0.03,
+        "sum_insured": 0.11
       }
     }
   },
-  "completed": true
+
+  "loan_scorecard": {
+    "overall_score": 84.0,
+    "risk_grade": "B",
+    "components": [
+      { "name": "CIBIL Score", "value": 742, "score": 80, "weight": "30%", "status": "good" },
+      { "name": "Income-to-EMI Ratio", "value": "28.5%", "score": 80, "weight": "25%", "status": "good" },
+      { "name": "Loan-to-Value", "value": "66.7%", "score": 60, "weight": "20%", "status": "fair" },
+      { "name": "Employment Stability", "value": "5 yrs", "score": 50, "weight": "15%", "status": "good" },
+      { "name": "Annual Income", "value": "₹10,20,000", "score": 51, "weight": "10%", "status": "good" }
+    ]
+  },
+
+  "insurance_scorecard": {
+    "premium": 15300,
+    "risk_category": "Low",
+    "components": [
+      { "name": "Age", "value": 31, "weight": "25%", "status": "good" },
+      { "name": "BMI", "value": 24.2, "weight": "20%", "status": "good" },
+      { "name": "Smoking Status", "value": "Non-smoker", "weight": "15%", "status": "good" }
+    ]
+  },
+
+  "loan_improvement_plan": [
+    {
+      "action": "Improve your CIBIL score",
+      "current_value": "680",
+      "target_value": "750+",
+      "expected_impact": "probability +10-15%",
+      "timeframe": "6-12 months",
+      "how_to": "Pay all EMIs and credit card bills on time...",
+      "priority": "high",
+      "category": "credit"
+    }
+  ],
+
+  "insurance_improvement_plan": [
+    {
+      "action": "Quit smoking to reduce premium",
+      "current_value": "Smoker",
+      "target_value": "Non-smoker (2+ years)",
+      "expected_impact": "₹8,000-15,000/year reduction",
+      "timeframe": "24 months",
+      "how_to": "Enroll in a smoking cessation program...",
+      "priority": "high",
+      "category": "lifestyle"
+    }
+  ],
+
+  "verification_result": {
+    "verified": true,
+    "concerns": [],
+    "recommendation": "APPROVE",
+    "hard_fail": false
+  },
+
+  "ocr_confidence_scores": { "bank_statement": 92.0, "aadhaar_card": 96.0 },
+  "ocr_freshness_warnings": []
 }
 ```
 
 ---
 
-### GET /api/workflow/stream/{application_id}
+#### `GET /api/workflow/stream/{application_id}`
+Server-Sent Events stream of agent completion events.
 
-Server-Sent Events stream. Emits one event per agent step, then a done signal.
-
+**Event format:**
 ```
 data: {"agent": "kyc", "status": "complete"}
 data: {"agent": "onboarding", "status": "complete"}
+...
 data: {"done": true}
 ```
 
 ---
 
-## Browser-Side OCR (frontend/src/utils/ocr.js)
+#### `GET /health`
+```json
+{ "status": "ok" }
+```
 
-Uses Puter.js loaded from CDN (`https://js.puter.com/v2/`). No API key required — User-Pays model.
+---
 
-### ocrDocument(file, docType)
+## Decision Engine (backend/api/workflow.py — `get_results`)
 
-Input: a `File` object and a document type string.
+All scoring is computed from `applicant_data` stored at application creation time.
 
-Steps:
-1. Calls `window.puter.ai.img2txt(file)` to extract raw text from the image/PDF
-2. Builds a structured extraction prompt for the document type
-3. Calls `window.puter.ai.chat(prompt + rawText)` to parse structured JSON fields
-4. Strips markdown code fences and parses the JSON response (falls back to regex extraction if needed)
+### Loan Scoring
 
-Document types and extracted fields:
-
-| docType | Extracted fields |
+**Derived metrics:**
+| Metric | Formula |
 |---|---|
-| `bank_statement` | `account_name`, `current_balance`, `avg_monthly_balance`, `recurring_salary_deposits`, `statement_date`, `bank_name` |
-| `salary_slip` | `employee_name`, `employer_name`, `net_income`, `slip_date` |
-| `loan_statement` | `current_emi`, `outstanding_balance`, `lender_name` |
-| `property_document` | `property_value`, `owner_name`, `property_address` |
-| `aadhaar_card` | `full_name`, `dob`, `id_number` |
-| `diagnostic_report` | `patient_name`, `report_date`, `diagnosis` |
-| `itr` | `taxpayer_name`, `annual_income`, `assessment_year` |
+| FOIR (Fixed Obligation to Income Ratio) | `(existing_emi + loan_amount / (12 * 20)) / monthly_income` |
+| LTV (Loan-to-Value) | `loan_amount / property_value` |
+| Annual Income | `monthly_income * 12` |
 
-Returns:
-```js
-{ docType: "bank_statement", extracted: { account_name: "...", net_income: 85000 }, rawText: "...", error: null }
-// on failure:
-{ docType: "bank_statement", extracted: null, rawText: null, error: "OCR failed" }
-```
+**Base probability:** 0.50, adjusted by:
+| Condition | Adjustment |
+|---|---|
+| CIBIL ≥ 750 | +0.20 |
+| CIBIL 650–749 | +0.10 |
+| FOIR < 0.35 | +0.15 |
+| FOIR > 0.55 | −0.20 |
+| LTV < 0.70 | +0.10 |
+| LTV > 0.85 | −0.15 |
 
-### validateOcrResults(ocrResults)
+**Hard-fail overrides** (force rejection regardless of probability):
+- FOIR > 55% → concern flagged, approved = false
+- LTV > 85% → concern flagged, approved = false
+- CIBIL < 600 → concern flagged, approved = false
 
-Input: array of `ocrDocument()` results.
+**Risk grade:** A (≥85%), B (≥70%), C (≥55%), D (≥40%), E (<40%)
 
-Cross-document consistency checks:
-- Name consistency: `salary_slip.employee_name` = `bank_statement.account_name` = `aadhaar_card.full_name` (case-insensitive exact match). Flags each mismatched pair.
-- Income consistency: `salary_slip.net_income` vs `bank_statement.recurring_salary_deposits` — flags if difference > 20%
-- Freshness: salary slip must be dated within 3 months of today, bank statement within 6 months
+**Approval threshold:** probability ≥ 0.60
 
-Confidence scoring:
-- Starts at 1.0
-- Deducts 0.15 per consistency flag raised
-- Deducts 0.1 if monthly income could not be extracted from any document
-- Deducts 0.1 if no ID proof (aadhaar_card) was scanned
-- Clamped to minimum 0.1
+**Scorecard component scoring:**
+| Component | Score 100 | Score 80 | Score 60 | Score 40 | Score 0 |
+|---|---|---|---|---|---|
+| CIBIL | ≥800 | ≥750 | ≥700 | ≥650 | <650 |
+| FOIR | ≤20% | ≤35% | ≤50% | ≤60% | >60% |
+| LTV | ≤50% | ≤65% | ≤75% | ≤80% | >80% |
+| Employment | years×10 (capped 100) | — | — | — | — |
+| Annual Income | income/20000 (capped 100) | — | — | — | — |
 
-Income extraction priority: `salary_slip.net_income` → `itr.annual_income / 12` → `bank_statement.recurring_salary_deposits`
+**Improvement plan triggers:**
+- CIBIL < 750 → "Improve your CIBIL score" (high priority)
+- FOIR > 0.40 → "Reduce existing EMI obligations" (high priority)
+- LTV > 0.75 → "Increase your down payment" (medium priority)
+- Employment < 2 years → "Build employment stability" (medium priority)
 
-Returns:
-```js
-{
-  extracted_data: { monthly_income: 85000, existing_emi: 5000, property_value: 5000000, employer_name: "Acme" },
-  document_freshness_passed: true,
-  consistency_flags: [ "Name mismatch: Salary slip (\"John\") != ID proof (\"John Doe\")" ],
-  confidence_score: 0.85,
-  raw_by_type: { bank_statement: {...}, salary_slip: {...}, aadhaar_card: {...} }
-}
-```
+### Insurance Scoring
 
----
+**BMI:** `weight / (height_m)²`
 
-## Frontend API Client (frontend/src/utils/api.js)
+**Base premium:** `sum_insured * 0.03`, multiplied by:
+| Condition | Multiplier |
+|---|---|
+| Age > 45 | ×1.4 |
+| Smoker | ×1.5 |
+| BMI > 30 | ×1.2 |
 
-Base URL: `VITE_API_URL` env var, defaults to `http://localhost:8000/api`.
+**Risk category:** Low (<₹20,000/yr), Medium (<₹50,000/yr), High (≥₹50,000/yr)
 
-All functions throw `Error` with the detail message on non-2xx responses. FastAPI 422 structured errors are serialized as JSON strings so the caller can parse and display individual error lines.
-
-| Function | Method | Endpoint | Auth |
-|---|---|---|---|
-| `registerUser(payload)` | POST | `/auth/register` | No |
-| `loginUser(payload)` | POST | `/auth/login` | No |
-| `verifyKyc(token, payload)` | POST | `/workflow/verify-kyc` | Bearer |
-| `createApplication(token, payload)` | POST | `/applications/` | Bearer |
-| `previewOcr(token, payload)` | POST | `/workflow/preview-ocr` | Bearer |
-| `submitWorkflow(token, appId)` | POST | `/workflow/submit/:id` | Bearer |
-| `getWorkflowStatus(token, appId)` | GET | `/workflow/status/:id` | Bearer |
-| `getWorkflowResults(token, appId)` | GET | `/workflow/results/:id` | Bearer |
+**Improvement plan triggers:**
+- Smoker → "Quit smoking" (high priority)
+- BMI > 27 → "Reduce BMI to healthy range" (medium priority)
 
 ---
 
-## Global State (ShieldContext.jsx)
+## State Management (ShieldContext)
 
-Single React context wrapping the entire app. All pages read and write to this context — no prop drilling.
+All application state lives in `ShieldContext` (`frontend/src/context/ShieldContext.jsx`):
 
-| Field | Type | Purpose |
+| Key | Type | Description |
 |---|---|---|
-| `view` | string | Current page: `landing`, `kyc`, `selection`, `prelim`, `upload`, `config`, `analysis`, `result`, `how`, `partner`, `about` |
-| `service` | `'loan'` / `'insurance'` / null | Selected service type |
-| `loanType` | `'home'` / `'personal'` | Loan sub-type |
-| `userData` | object | `{ aadhaar, name, dob, email, password }` |
-| `kycData` | object | Response from `/verify-kyc`: `{ name, aadhaar_number, dob, cibil_score, gender, address }` |
-| `applicantData` | object | Merged form data from Preliminary + Config pages |
-| `uploadedDocs` | object | `{ [docLabel]: true }` — tracks which doc cards are checked in the UI |
-| `uploadedDocuments` | array | `[{ type, name, mime_type, content_base64 }]` — raw base64 docs for backend |
-| `ocrPreviewData` | object | OCR-extracted fields merged with declared data. Internal metadata: `_ocr_confidence` (float), `_ocr_flags` (string[]), `_ocr_freshness` (boolean) |
-| `authToken` | string / null | Bearer token from login |
-| `applicationId` | string / null | Created application ID |
-| `requestId` | string / null | Workflow request ID |
-| `workflowStatus` | object / null | Latest status poll response |
-| `workflowResult` | object / null | Full results from `/results` endpoint |
-| `workflowError` | string / null | Error message if workflow fails |
+| `view` | string | Current page/view |
+| `service` | `'loan' \| 'insurance'` | Selected service |
+| `userData` | object | Name, Aadhaar, DOB, email, password |
+| `kycData` | object | KYC response (name, CIBIL, gender, address) |
+| `applicantData` | object | All declaration form fields |
+| `loanType` | `'home' \| 'personal'` | Loan sub-type |
+| `uploadedDocs` | object | `{ [docLabel]: boolean }` — UI upload state |
+| `uploadedDocuments` | array | `[{ type, name, mime_type, content_base64 }]` |
+| `ocrPreviewData` | object | OCR-extracted fields + `_ocr_confidence`, `_ocr_flags`, `_ocr_freshness` |
+| `authToken` | string | Bearer token from login |
+| `applicationId` | string | Created application ID |
+| `requestId` | string | Workflow request ID |
+| `workflowStatus` | object | Latest status poll response |
+| `workflowResult` | object | Full results payload |
+| `workflowError` | string | Error message if workflow fails |
 
 ---
 
-## Page-by-Page Flow
+## Backend In-Memory State (api/state.py)
 
-### 1. Landing (view: landing)
+Three in-memory dicts (reset on server restart):
+- `USERS_DB` — `{ email: { id, email, password, name, role } }`
+- `APPLICATIONS_DB` — `{ app_id: { ...application fields... } }`
+- `WORKFLOW_DB` — `{ app_id: { status, request_id, rejected, loan_prediction, ... } }`
+- `WORKFLOW_EVENTS` — `{ app_id: [ { agent, status }, ... ] }`
 
-Marketing page. Sections: hero with large "Daksha" serif heading + CTA, multi-agent architecture cards (5 agents + transparent decisions card), "What Daksha Checks" (income verification, document authenticity, regulatory compliance), "Why Choose Daksha" (explainable AI, OTP KYC, fraud-resistant, sub-2-minute decisions), footer. CTA navigates to `kyc`.
-
-### 2. KYC (view: kyc)
-
-Collects full name and 12-digit Aadhaar number. On submit:
-1. Derives `<aadhaar>@daksha.local` email and `daksha-<aadhaar>` password
-2. Calls `registerUser` — silently ignores 409
-3. Calls `loginUser` → stores `authToken`
-4. Calls `verifyKyc` → stores `kycData` (includes mock CIBIL score 742)
-5. Navigates to `selection`
-
-Validation: Aadhaar input strips non-digits on change. Submit button disabled until exactly 12 digits entered and name is non-empty.
-
-### 3. Selection (view: selection)
-
-Two clickable cards: "Loan Shield" (Landmark icon) and "Life Shield" (Heart icon). Clicking sets `service` and navigates to `prelim`.
-
-### 4. Preliminary (view: prelim)
-
-Collects minimal required fields before document upload.
-
-Loan required: `loan_type`, `loan_amount_requested`, `tenure_months`. Optional: `property_value` (home loans only).
-Insurance required: `age`, `city`, `sum_insured`.
-
-On continue: validates required fields, merges into `applicantData`, sets `loanType`, navigates to `upload`.
-
-### 5. Upload (view: upload)
-
-Document upload with live browser-side OCR running immediately on file select.
-
-Loan documents: Bank Statement (required), Salary Slip (required), Existing Loan Statements (optional), Property Documents (required for home), ID Proof (required).
-Insurance documents: Medical Reports (required), ID Proof (required), Income Proof/ITR (optional).
-
-Per-document flow on file select:
-1. Validates file size ≤ 5MB
-2. Reads file as base64 via FileReader, stores in `uploadedDocuments` (deduplicates by doc type)
-3. Marks doc card as uploaded (lime dashed border, checkmark icon)
-4. If `window.puter` is defined: runs `ocrDocument(file, docType)` asynchronously
-5. Shows per-card status badge: spinning Loader2 while running → green "OCR ✓" on success → amber "OCR skipped" on error
-
-OCR extracted data panel: appears below upload cards once at least one document is successfully scanned. Shows a grid of all extracted fields per document type with human-readable labels. Numeric values formatted as `₹ X,XX,XXX` (Indian locale).
-
-Consistency flags panel: amber warning box listing name mismatches, income mismatches, or stale documents. Non-blocking — user can still continue.
-
-On "Continue to Declaration Form":
-- If client OCR results exist: runs `validateOcrResults()`, shows consistency flags, merges extracted fields into `ocrPreviewData` with `_ocr_confidence`, `_ocr_flags`, `_ocr_freshness` metadata, navigates to `config` directly
-- If no OCR results: calls backend `/preview-ocr` with raw base64 documents as fallback
-
-Button disabled while any OCR is still running or backend call is in progress.
-
-### 6. Config / Declaration Form (view: config)
-
-Full declaration form pre-filled from OCR + KYC data.
-
-OCR confidence banner: lime badge showing `OCR confidence: XX%`.
-OCR flags banner: amber box listing document inconsistency flags (if any).
-OCR field highlighting: fields populated by OCR show a lime "OCR" badge next to the label and a lime-tinted border + background.
-
-Loan form sections:
-
-Personal Profile: age*, gender*, city*, marital status, employment type (Salaried/Self-employed), employer category (Govt/MNC/Pvt Ltd/Small firm), total work experience (years), current company tenure (years), residential status.
-
-Loan Details: loan type* (Home/Personal), loan amount*, tenure in months*, property value (OCR-highlighted, home only), property city (home only), property type (home only).
-
-Financial Declaration: declared monthly income* (OCR-highlighted), declared existing EMI* (OCR-highlighted), credit score*.
-
-Insurance form sections:
-
-Health Profile: age*, gender*, city*, family size, height in cm*, weight in kg*, smoker (No/Yes), alcohol (None/Moderate/High).
-
-Medical History: pre-existing diseases (multi-select checkboxes: Diabetes, Hypertension, Asthma, Cardiac, Thyroid, None — selecting None clears others), family history.
-
-Coverage: sum insured*, deductible.
-
-On submit: validates required fields, merges into `applicantData` + `userData`, navigates to `analysis`.
-
-### 7. Analysis (view: analysis)
-
-Dark forest-colored page showing the multi-agent pipeline running.
-
-Agent steps (9 total): KYC Agent, Onboarding Agent, Rules Agent, Fraud Agent, Feature Engineering, Compliance Agent, Underwriting Agent, Verification Agent, Transparency Agent.
-
-Each step rendered by `AgentStatus`: pending (dim), running (lime spinner), complete (teal checkmark).
-
-Workflow execution:
-1. Calls `createApplication` with all collected data
-2. Calls `submitWorkflow` — silently ignores "already submitted" error
-3. Polls `getWorkflowStatus` every 2 seconds, advances step counter on each successful poll
-4. On `status === 'completed'`: calls `getWorkflowResults`, stores in `workflowResult`, navigates to `result`
-5. On `status === 'failed'`: shows error message in red
-6. Max 5 retries on network errors; retry counter shown in amber
-
-Progress bar fills proportionally to current step. `runRef` prevents double-execution on re-renders.
-
-### 8. Result (view: result)
-
-Hero decision card (three variants):
-- Loan: dark forest card, large lime approval probability percentage, "Approved"/"Under Review" badge
-- Insurance: teal card, estimated annual premium in ₹ (Indian locale), "Health Risk Assessed" badge
-- Rejected: red card with rejection reason text
-
-AI Summary card: plain-text explanation string from the backend.
-
-"What drove this decision" panel: feature contributions sorted by absolute impact. For each feature:
-- Icon: TrendingUp (green) for positive, TrendingDown (red) for negative, Minus (grey) for near-zero (abs < 0.03)
-- Human-readable label (mapped from raw key, e.g. "emi_load" → "EMI Burden")
-- Signed score badge: green pill for positive (+0.38), red pill for negative (-0.17)
-- Proportional bar: width = abs(value) / max(abs(all values)) × 100%, green for positive, red for negative
-- Plain-English explanation sentence (different text for positive vs negative value)
-
-Loan feature explanations:
-- `credit_score` / Credit Score: strong history boosts approval / lower score reduces confidence
-- `monthly_income` / Monthly Income: income supports loan / insufficient for loan size
-- `emi_load` / EMI Burden: low EMIs leave room / high EMIs reduce capacity (FOIR exceeded)
-- `loan_to_value` / Loan-to-Value Ratio: strong collateral / loan high relative to property (LTV risk)
-- `employment_stability` / Employment Stability: stable employment / short tenure raises risk
-- `debt_to_income` / Debt-to-Income Ratio: debt within limits / total debt high relative to income
-
-Insurance feature explanations:
-- `age` / Age: lower-risk bracket / older age raises actuarial risk
-- `smoker` / Smoking Status: non-smoker lowers risk / smoking substantially increases premium
-- `bmi` / BMI / Weight: healthy BMI / outside range raises risk
-- `pre_existing_diseases` / Pre-existing Conditions: no conditions / declared conditions increase risk
-- `family_history` / Family Medical History: no concerning history / chronic illness history raises risk
-- `sum_insured` / Sum Insured: proportionate coverage / high coverage increases premium
-
-Unknown keys fall back to title-cased label and generic positive/negative explanation.
-
-OCR Extracted Data panel: summary grid of key fields extracted from documents (Monthly Income, Existing EMI, Property Value, Employer, Name (ID), Date of Birth). Numeric values formatted as ₹ Indian locale. Confidence percentage badge in lime. Any `_ocr_flags` shown as amber bullet list below the grid.
-
-"Start New Application" button resets view to `landing`.
+Token format: `base64(email:timestamp)` — stateless, no expiry in demo mode.
 
 ---
 
-## Components
+## OCR Service (backend/ocr/)
 
-### Navbar
+Three modes controlled by `settings.ocr_mode`:
+- `mock` — returns hardcoded mock data (default)
+- `production` — uses Tesseract + OpenCV + pdf2image for real OCR
+- `service.py` — factory that selects mode based on config
 
-Floating navigation bar. Transparent and full-width at top of page (scrollY ≤ 40px). Morphs to dark forest rounded pill on scroll (scrollY > 40px). Transition uses cubic-bezier easing over 500ms. Logo navigates to `landing`. Nav links (desktop only): How It Works, Partners, About. Shows user name + "Sign out" when authenticated; "Get Started" otherwise. Sign out clears `authToken` and navigates to `landing`.
-
-### AgentStatus
-
-Renders a single agent step row. Props: `name`, `description`, `status`.
-
-| Status | Appearance |
-|---|---|
-| `pending` / `waiting` | 40% opacity, grey circle, muted text |
-| `running` / `loading` | Lime-tinted background, lime border ring, animated SVG spinner |
-| `complete` | Teal-tinted background, teal checkmark circle |
-
-### GlassCard
-
-White card with subtle border and shadow. Accepts `className` prop. Used as container in Config and Result pages.
-
-### FeatureChart
-
-Legacy bar chart component showing feature contributions as horizontal bars. Superseded by the inline feature explanation section in Result.jsx.
+The active API path does not call these directly — OCR is handled client-side via Puter.js or via the `preview-ocr` endpoint's Path B fallback.
 
 ---
 
-## Hooks
+## ML Models (backend/ml/)
 
-### useAuth
+Four serialised EBM (Explainable Boosting Machine) models in `backend/ml_models/`:
+- `ebm_finance.pkl` — loan approval model
+- `ebm_health.pkl` — insurance premium model
+- `fin_encoders.pkl` — categorical encoders for finance model
+- `health_encoders.pkl` — categorical encoders for health model
 
-Thin wrapper around ShieldContext. Returns `{ authToken, setAuthToken, userData, setUserData }`.
-
-### useWorkflowStream
-
-Opens an `EventSource` SSE connection to `/api/workflow/stream/:applicationId`. Returns `{ events: Array<object>, connected: boolean }`. Events parsed as JSON. Connection closes on error or unmount. Not currently used in the main Analysis flow (which uses polling) but available for real-time streaming.
+`model_loader.py` loads these at startup. `loan_scorer.py` and `insurance_scorer.py` wrap inference. These are not called in the active API path — the `get_results` endpoint uses formula-based scoring. The ML models are available for future integration via the LangGraph agent pipeline.
 
 ---
 
-## Design System
+## Agent Pipeline (backend/agents/ — future integration)
 
-Colors:
-- `#04221f` — forest green (primary dark, hero backgrounds, button fill, text)
-- `#005b52` — teal (brand color, borders, labels, secondary text)
-- `#dbf226` — lime yellow (accent, CTA hover, OCR badges, progress bars, agent spinner)
-- `#f7faf9` — off-white (page backgrounds, card backgrounds)
+Nine LangGraph agents defined but not wired into the active API:
 
-Typography:
-- Serif: Crimson Text (400, 600, 700, italic) — headings, logo, hero text
-- Sans: Hanken Grotesk (400, 500, 600, 700) — body, labels, UI elements
+| Agent | File | Purpose |
+|---|---|---|
+| KYC | `kyc.py` | Identity and Aadhaar verification |
+| Onboarding | `onboarding.py` | Document ingestion and OCR |
+| Rules | `rules.py` | RAG-based underwriting rule checks (IRDAI/USDA) |
+| Fraud | `fraud.py` | Document fraud detection |
+| Feature Engineering | `feature_engineering.py` | Derive FOIR, LTV, BMI, etc. |
+| Compliance | `compliance.py` | Regulatory compliance checks |
+| Underwriting | `underwriting.py` | EBM model inference |
+| Verification | `verification.py` | Sanity and hard-rule checks |
+| Transparency | `transparency.py` | SHAP/EBM explanation generation |
 
-CSS variables in `frontend/src/index.css`:
-```css
---font-serif: 'Crimson Text', Georgia, serif;
---font-sans: 'Hanken Grotesk', system-ui, sans-serif;
+Supervisor agent in `supervisor.py` orchestrates the pipeline. Graph definition in `graph/workflow.py`.
+
+---
+
+## Setup & Running
+
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env            # edit SECRET_KEY for production
+uvicorn main:app --reload --port 8000
 ```
 
-Tailwind v3 directives: `@tailwind base; @tailwind components; @tailwind utilities;`
+**Environment variables (`.env`):**
+| Variable | Default | Description |
+|---|---|---|
+| `SECRET_KEY` | `change-me` | JWT signing key (required in production) |
+| `ENV` | `development` | Environment name |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./daksha.db` | SQLAlchemy DB URL |
+| `OCR_MODE` | `mock` | `mock` or `production` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | Token lifetime |
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev          # development server on http://localhost:5173
+npm run build        # production build to dist/
+```
+
+**Environment variables (`frontend/.env`):**
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8000/api` | Backend API base URL |
+
+### Docker
+
+```bash
+docker-compose up --build
+```
+
+Services: `backend` on port 8000, `frontend` on port 80.
 
 ---
 
-## Known Limitations
+## Tech Stack
 
-- Auth tokens have no expiry and are not cryptographically signed — for demo only. `core/security.py` (bcrypt + JWT) exists but is not used.
-- All data is lost on backend restart (in-memory store). `core/database.py` (SQLAlchemy + aiosqlite) exists but is not wired up.
-- Workflow results are static mock data — the EBM models in `ml_models/` and LangGraph agents in `agents/` are not connected to the active API flow.
-- Puter.js OCR requires the user to be signed into a Puter account in their browser. If not signed in, OCR silently fails and the backend fallback path is used.
-- The backend fallback OCR path (`_extract_fields`) returns mock values for missing fields rather than real OCR extraction.
-- `useWorkflowStream` SSE hook is implemented but not used in the current Analysis page (polling is used instead).
-- `FeatureChart` component is implemented but superseded by the inline feature explanation in Result.jsx.
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS, Lucide React |
+| Backend | FastAPI, Uvicorn, Pydantic v2 |
+| ML | Interpret (EBM), scikit-learn, pandas, numpy |
+| Agent orchestration | LangGraph, LangChain, Groq LLM |
+| OCR (client) | Puter.js (`puter.ai.img2txt` + `puter.ai.chat`) |
+| OCR (server) | Tesseract, OpenCV, pdf2image, PyPDF2 |
+| Auth | Base64 token (demo); python-jose + passlib (production-ready) |
+| Vector store | FAISS + pypdf (for RAG rules agent) |
+| Containerisation | Docker, docker-compose |

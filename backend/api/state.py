@@ -1,10 +1,13 @@
 ﻿import uuid
+from typing import Any
+from uuid import uuid4
 
-# In-memory stores
-USERS_DB = {}          # email -> { id, email, password, name, role }
-APPLICATIONS_DB = {}   # app_id -> full application object
-WORKFLOW_DB = {}       # app_id -> workflow result object
-WORKFLOW_EVENTS = {}   # app_id -> list of { agent, status }
+# In-memory stores with type hints
+USERS_DB: dict[str, dict[str, Any]] = {}          # email -> { id, email, password, name, role }
+APPLICATIONS_DB: dict[str, dict[str, Any]] = {}   # app_id -> full application object
+WORKFLOW_DB: dict[str, dict[str, Any]] = {}       # app_id -> workflow result object
+WORKFLOW_EVENTS: dict[str, list[dict[str, Any]]] = {}   # app_id -> list of { agent, status }
+OTP_DB: dict[str, dict[str, Any]] = {}  # mobile -> {otp, expires_at}
 
 
 def create_token(email: str) -> str:
