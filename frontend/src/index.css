@@ -2,14 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-	margin: 0;
-	min-height: 100%;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image: linear-gradient(to bottom right, #eff6ff, #ffffff, #fef3c7);
+    overflow: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
 }
 
-body {
-	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
-	background: #ffffff;
+@layer components {
+  .glass-card {
+    @apply bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_25px_50px_-12px_rgba(75,0,130,0.12)];
+  }
+
+  .brinjal-gradient {
+    background: linear-gradient(135deg, #f4c2c2 0%, #e9d5ff 45%, #4b0082 100%);
+  }
+
+  .pink-glow {
+    box-shadow: 0 0 30px rgba(244, 194, 194, 0.45);
+  }
 }

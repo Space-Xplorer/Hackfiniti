@@ -1,1 +1,281 @@
-IRDAI insurance rules placeholder.
+﻿# IRDAI Health Insurance Underwriting Guidelines
+
+## Document Information
+- Authority: Insurance Regulatory and Development Authority of India (IRDAI)
+- Program: Health Insurance Underwriting Standards
+- Version: 2026
+- Last Updated: January 2026
+
+## Section 1: Age Eligibility
+
+### Rule 1.1: Minimum Entry Age
+The minimum entry age for health insurance is 18 years. Applicants below 18 years must be covered under family floater or dependent policies.
+
+**Severity: CRITICAL**
+**Citation: IRDAI Health Insurance Regulations 2016, Section 4.1**
+
+### Rule 1.2: Maximum Entry Age
+The maximum entry age for new health insurance policies is 65 years. Applicants above 65 may be offered senior citizen plans with modified terms.
+
+**Severity: HIGH**
+
+### Rule 1.3: Renewal Age
+Existing policyholders can renew their policies lifelong regardless of age, subject to premium adjustments.
+
+**Severity: LOW**
+
+## Section 2: Pre-Existing Conditions
+
+### Rule 2.1: Disclosure Requirement
+All pre-existing medical conditions must be disclosed at the time of application. Non-disclosure may result in claim rejection.
+
+**Severity: CRITICAL**
+**Citation: IRDAI Health Insurance Regulations 2016, Section 5.2**
+
+### Rule 2.2: Waiting Period for Pre-Existing Conditions
+Pre-existing conditions are subject to a waiting period of:
+- 2-4 years for chronic conditions (diabetes, hypertension, heart disease)
+- 1-2 years for minor conditions
+- Immediate coverage for accidental injuries
+
+**Severity: HIGH**
+
+### Rule 2.3: Critical Pre-Existing Conditions
+Applicants with the following conditions may face premium loading or coverage restrictions:
+- Active cancer or cancer treatment within past 5 years
+- Chronic kidney disease (Stage 3 or higher)
+- Severe heart conditions (recent heart attack, bypass surgery)
+- HIV/AIDS
+- Organ transplant recipients
+
+**Severity: CRITICAL**
+
+## Section 3: BMI and Weight Requirements
+
+### Rule 3.1: BMI Limits
+Applicants with BMI outside the range of 18-32 may face:
+- BMI < 18: Medical evaluation required
+- BMI 32-35: Premium loading of 10-25%
+- BMI > 35: Premium loading of 25-50% or coverage restrictions
+
+**Severity: HIGH**
+**Citation: IRDAI Underwriting Guidelines 2020, Section 7.3**
+
+### Rule 3.2: Morbid Obesity
+Applicants with BMI > 40 (morbid obesity) may be:
+- Offered coverage with significant premium loading (50-100%)
+- Required to undergo medical examination
+- Subject to sub-limits on specific treatments
+
+**Severity: HIGH**
+
+## Section 4: Lifestyle Factors
+
+### Rule 4.1: Smoking Status
+Smokers (tobacco, cigarettes, or other forms) are subject to:
+- Premium loading of 20-40% compared to non-smokers
+- Mandatory disclosure requirement
+- Potential coverage restrictions for smoking-related illnesses
+
+**Severity: HIGH**
+**Citation: IRDAI Health Insurance Regulations 2016, Section 6.4**
+
+### Rule 4.2: Alcohol Consumption
+Excessive alcohol consumption (>3 drinks per day) may result in:
+- Premium loading of 15-30%
+- Coverage restrictions for alcohol-related conditions
+- Mandatory medical examination
+
+**Severity: MEDIUM**
+
+### Rule 4.3: Hazardous Occupations
+Applicants in high-risk occupations (mining, construction at heights, military, etc.) may face:
+- Premium loading of 10-25%
+- Exclusions for occupation-related injuries
+- Additional documentation requirements
+
+**Severity: MEDIUM**
+
+## Section 5: Medical History
+
+### Rule 5.1: Diabetes
+Applicants with diabetes must disclose:
+- Type of diabetes (Type 1, Type 2, Gestational)
+- HbA1c levels (must be < 9% for standard coverage)
+- Duration of condition
+- Current treatment and control status
+
+**HbA1c > 9%: Premium loading of 30-50% or coverage restrictions**
+
+**Severity: HIGH**
+
+### Rule 5.2: Hypertension
+Applicants with hypertension must disclose:
+- Blood pressure readings (must be < 160/100 for standard coverage)
+- Duration of condition
+- Current medication and control status
+
+**BP > 160/100: Premium loading of 20-40%**
+
+**Severity: HIGH**
+
+### Rule 5.3: Heart Disease
+Applicants with history of heart disease face:
+- Recent heart attack (< 2 years): Coverage may be declined
+- Bypass surgery (< 2 years): Premium loading of 50-100%
+- Stable angina: Premium loading of 30-50%
+- Well-controlled conditions (> 5 years): Standard or minimal loading
+
+**Severity: CRITICAL**
+
+### Rule 5.4: Cancer History
+Applicants with cancer history:
+- Active cancer or treatment within 5 years: Coverage typically declined
+- Cancer-free for 5+ years: Premium loading of 50-100%
+- Benign tumors (removed): Minimal or no loading
+
+**Severity: CRITICAL**
+
+## Section 6: Family Medical History
+
+### Rule 6.1: Hereditary Conditions
+Family history of hereditary conditions may result in:
+- Diabetes in immediate family: Premium loading of 5-15%
+- Heart disease in immediate family: Premium loading of 10-20%
+- Cancer in immediate family: Premium loading of 10-25%
+- Multiple hereditary conditions: Premium loading of 20-40%
+
+**Severity: MEDIUM**
+
+### Rule 6.2: Genetic Disorders
+Known genetic disorders in family may require:
+- Genetic testing
+- Premium loading of 25-50%
+- Coverage restrictions for specific conditions
+
+**Severity: HIGH**
+
+## Section 7: Coverage Amount Limits
+
+### Rule 7.1: Maximum Sum Insured
+Maximum sum insured varies by age and health status:
+- Age 18-40, healthy: Up to Γé╣50,00,000
+- Age 41-50, healthy: Up to Γé╣30,00,000
+- Age 51-60, healthy: Up to Γé╣20,00,000
+- Age 61+: Up to Γé╣10,00,000
+
+**Severity: MEDIUM**
+
+### Rule 7.2: Sub-Limits
+Certain treatments may have sub-limits:
+- Room rent: 1-2% of sum insured per day
+- ICU charges: 2-5% of sum insured per day
+- Specific procedures: As per policy terms
+
+**Severity: LOW**
+
+## Section 8: Waiting Periods
+
+### Rule 8.1: Initial Waiting Period
+All policies have an initial waiting period of 30 days for illnesses (except accidental injuries).
+
+**Severity: MEDIUM**
+
+### Rule 8.2: Specific Disease Waiting Period
+Specific diseases have waiting periods of 1-2 years:
+- Cataract, hernia, joint replacement: 2 years
+- Kidney stones, sinusitis: 1 year
+- Other specified conditions: As per policy
+
+**Severity: MEDIUM**
+
+## Section 9: Medical Examination Requirements
+
+### Rule 9.1: Mandatory Medical Examination
+Medical examination is mandatory for:
+- Applicants above age 45
+- Sum insured above Γé╣10,00,000
+- Applicants with disclosed medical conditions
+- BMI > 35 or < 18
+
+**Severity: HIGH**
+
+### Rule 9.2: Medical Test Requirements
+Required tests may include:
+- Blood tests (CBC, lipid profile, blood sugar, HbA1c)
+- Urine analysis
+- ECG (for age 40+)
+- Chest X-ray (for specific conditions)
+- Additional tests as deemed necessary
+
+**Severity: MEDIUM**
+
+## Section 10: Premium Calculation Factors
+
+### Rule 10.1: Base Premium Factors
+Base premium is calculated based on:
+- Age (primary factor)
+- Sum insured
+- Geographic location
+- Policy type (individual, family floater)
+
+**Severity: LOW**
+
+### Rule 10.2: Loading Factors
+Premium loading is applied for:
+- Pre-existing conditions: 20-100%
+- Smoking: 20-40%
+- High BMI: 10-50%
+- Hazardous occupation: 10-25%
+- Family history: 5-40%
+- Multiple risk factors: Cumulative loading up to 150%
+
+**Severity: MEDIUM**
+
+## Section 11: Exclusions and Restrictions
+
+### Rule 11.1: Permanent Exclusions
+The following are permanently excluded:
+- Self-inflicted injuries
+- War and nuclear risks
+- Cosmetic procedures (unless medically necessary)
+- Experimental treatments
+
+**Severity: CRITICAL**
+
+### Rule 11.2: Conditional Exclusions
+The following may be excluded based on underwriting:
+- Specific pre-existing conditions
+- Occupation-related injuries
+- Adventure sports injuries
+- Substance abuse-related conditions
+
+**Severity: HIGH**
+
+## Section 12: Disclosure and Fraud
+
+### Rule 12.1: Material Non-Disclosure
+Failure to disclose material facts may result in:
+- Policy cancellation
+- Claim rejection
+- Forfeiture of premiums paid
+- Legal action
+
+**Severity: CRITICAL**
+**Citation: IRDAI Health Insurance Regulations 2016, Section 8.1**
+
+### Rule 12.2: Fraudulent Claims
+Fraudulent claims will result in:
+- Immediate policy termination
+- Blacklisting from future coverage
+- Legal prosecution
+- Recovery of amounts paid
+
+**Severity: CRITICAL**
+
+## Compliance Notes
+
+All rules marked as CRITICAL severity will result in automatic application rejection or significant restrictions if violated. HIGH severity violations will result in substantial premium loading or coverage restrictions. MEDIUM and LOW severity violations may result in minor premium adjustments or policy terms modifications.
+
+**Effective Date: January 1, 2026**
+**Review Date: December 31, 2026**

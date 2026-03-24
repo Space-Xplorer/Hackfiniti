@@ -1,39 +1,48 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-from core.database import get_db
-from core.security import create_access_token, hash_password, verify_password
-from models.user import User
-from schemas.user import UserCreate, UserRead
+from api.state import USERS_DB, create_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already registered")
+class RegisterPayload(BaseModel):
+    email: str
+    password: str
+    name: str | None = None
 
-    user = User(
-        email=payload.email,
-        full_name=payload.full_name,
-        hashed_password=hash_password(payload.password),
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+
+class LoginPayload(BaseModel):
+    email: str
+    password: str
+
+
+@router.post("/register")
+async def register(payload: RegisterPayload) -> dict:
+    email = payload.email.lower().strip()
+    if email in USERS_DB:
+        raise HTTPException(status_code=409, detail="User already exists")
+    USERS_DB[email] = {
+        "id": str(len(USERS_DB) + 1),
+        "email": email,
+        "password": payload.password,
+        "name": payload.name or email.split("@")[0],
+        "role": "user",
+    }
+    user = USERS_DB[email]
+    return {"message": "User registered successfully", "user": {"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"]}}
 
 
 @router.post("/login")
-async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == form.username))
-    user = result.scalar_one_or_none()
-    if not user or not verify_password(form.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-    token = create_access_token(subject=user.email)
-    return {"access_token": token, "token_type": "bearer"}
+async def login(payload: LoginPayload) -> dict:
+    email = payload.email.lower().strip()
+    user = USERS_DB.get(email)
+    if not user or user["password"] != payload.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_token(email)
+    return {
+        "message": "Login successful",
+        "access_token": token,
+        "refresh_token": token,
+        "user": {"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"]},
+    }

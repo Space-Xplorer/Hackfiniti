@@ -1,26 +1,53 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Analysis from './pages/Analysis'
-import Config from './pages/Config'
-import KYC from './pages/KYC'
+import { ShieldProvider, useShield } from './context/ShieldContext'
+import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
-import Preliminary from './pages/Preliminary'
-import Result from './pages/Result'
+import KYC from './pages/KYC'
 import Selection from './pages/Selection'
 import Upload from './pages/Upload'
+import Analysis from './pages/Analysis'
+import Result from './pages/Result'
+import Config from './pages/Config'
+import Preliminary from './pages/Preliminary'
+import Partners from './pages/Partners'
+import About from './pages/About'
+import HowItWorks from './pages/HowItWorks'
+
+function NavigationSource() {
+  const { view } = useShield()
+  switch (view) {
+    case 'landing':    return <Landing />
+    case 'kyc':        return <KYC />
+    case 'selection':  return <Selection />
+    case 'prelim':     return <Preliminary />
+    case 'upload':     return <Upload />
+    case 'analysis':   return <Analysis />
+    case 'result':     return <Result />
+    case 'config':     return <Config />
+    case 'partner':    return <Partners />
+    case 'about':      return <About />
+    case 'how':        return <HowItWorks />
+    default:           return <Landing />
+  }
+}
+
+function AppShell() {
+  const { view } = useShield()
+  const scrollViews = new Set(['config', 'upload', 'prelim', 'kyc', 'partner', 'about', 'how', 'result'])
+
+  return (
+    <div className="h-screen bg-[#FAF9F6] flex flex-col overflow-hidden">
+      <Navbar />
+      <main className={`flex-1 min-h-0 ${scrollViews.has(view) ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+        <NavigationSource />
+      </main>
+    </div>
+  )
+}
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/selection" element={<Selection />} />
-        <Route path="/upload" element={<Upload />} />
-        <Route path="/preliminary" element={<Preliminary />} />
-        <Route path="/kyc" element={<KYC />} />
-        <Route path="/analysis" element={<Analysis />} />
-        <Route path="/config" element={<Config />} />
-        <Route path="/result" element={<Result />} />
-      </Routes>
-    </BrowserRouter>
+    <ShieldProvider>
+      <AppShell />
+    </ShieldProvider>
   )
 }

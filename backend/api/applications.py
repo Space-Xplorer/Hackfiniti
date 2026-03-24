@@ -1,39 +1,50 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Header, HTTPException
+from pydantic import BaseModel
 
-from api.deps import get_current_user
-from core.database import get_db
-from models.user import User
-from schemas.application import ApplicationCreate, ApplicationRead
-from services.application_service import create_application, get_application, list_applications
+from api.state import APPLICATIONS_DB, new_id, parse_token
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 
-@router.get("", response_model=list[ApplicationRead])
-async def list_apps(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await list_applications(db, current_user.id)
+class ApplicationCreatePayload(BaseModel):
+    request_type: str
+    loan_type: str | None = None
+    submitted_name: str | None = None
+    submitted_dob: str | None = None
+    submitted_aadhaar: str | None = None
+    applicant_data: dict = {}
+    uploaded_documents: list[dict] = []
 
 
-@router.post("", response_model=ApplicationRead, status_code=status.HTTP_201_CREATED)
-async def create_app(
-    payload: ApplicationCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await create_application(db, current_user.id, payload.product_type)
+def _get_email(authorization: str | None) -> str:
+    token = (authorization or "").replace("Bearer ", "", 1)
+    email = parse_token(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return email
 
 
-@router.get("/{application_id}", response_model=ApplicationRead)
-async def get_app(
-    application_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    app = await get_application(db, application_id, current_user.id)
-    if not app:
-        raise HTTPException(status_code=404, detail="Application not found")
-    return app
+@router.post("/")
+async def create_application(payload: ApplicationCreatePayload, authorization: str | None = Header(default=None)) -> dict:
+    user_email = _get_email(authorization)
+    app_id = new_id("app")
+    APPLICATIONS_DB[app_id] = {
+        "id": app_id,
+        "user_email": user_email,
+        "status": "draft",
+        "request_type": payload.request_type,
+        "loan_type": payload.loan_type,
+        "submitted_name": payload.submitted_name,
+        "submitted_dob": payload.submitted_dob,
+        "submitted_aadhaar": payload.submitted_aadhaar,
+        "applicant_data": payload.applicant_data,
+        "uploaded_documents": payload.uploaded_documents,
+    }
+    return {"message": "Application created", "application": APPLICATIONS_DB[app_id]}
+
+
+@router.get("")
+async def list_applications(authorization: str | None = Header(default=None)) -> dict:
+    user_email = _get_email(authorization)
+    items = [app for app in APPLICATIONS_DB.values() if app["user_email"] == user_email]
+    return {"items": items}
