@@ -1,0 +1,37 @@
+{
+  "payload": {
+    "loan": {
+      "loan_type": "home",
+      "loan_amount_requested": 2500000.0,
+      "tenure_months": null,
+      "property_value": 4200000.0,
+      "emi": null,
+      "foir": null,
+      "ltv": 0.5952380952380952,
+      "avg_salary_6m": 85000.0,
+      "existing_emi": 12000.0,
+      "income_stability_score": 1.0,
+      "credit_risk_bucket": "medium",
+      "age_risk_bucket": "medium",
+      "credit_score": 742.0
+    },
+    "health": {
+      "bmi": 23.38,
+      "age": 31.0,
+      "smoker": false,
+      "alcohol": "none",
+      "pre_existing_count": 1,
+      "family_history_count": 0,
+      "medical_risk_score": 0.2,
+      "lifestyle_risk_score": 0.0,
+      "age_risk_bucket": "medium",
+      "overall_risk_category": "low",
+      "sum_insured": 800000.0,
+      "deductible": null
+    }
+  },
+  "metadata": {
+    "request_id": "req_9978fcec29b1",
+    "request_type": "both"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "payload": {
+    "loan": {},
+    "health": {
+      "bmi": 25.8,
+      "age": 45.0,
+      "smoker": false,
+      "alcohol": "moderate",
+      "pre_existing_count": 1,
+      "family_history_count": 0,
+      "medical_risk_score": 0.2,
+      "lifestyle_risk_score": 0.2,
+      "age_risk_bucket": "medium",
+      "overall_risk_category": "medium",
+      "sum_insured": 1500000.0,
+      "deductible": null
+    }
+  },
+  "metadata": {
+    "request_id": "req_bc26e21dbb7f",
+    "request_type": "insurance"
+  }
+}

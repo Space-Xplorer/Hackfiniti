@@ -1,0 +1,85 @@
+{
+  "payload": {
+    "fraud_analysis": {
+      "fraud_risk_score": 0.0,
+      "anomaly_flags": [],
+      "confidence_level": "low",
+      "document_checks": [
+        {
+          "document_type": "aadhaar_card",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 41
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\aadhaar_card.pdf"
+        },
+        {
+          "document_type": "salary_slip",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 40
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\salary_slip.pdf"
+        },
+        {
+          "document_type": "bank_statement",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 43
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\bank_statement.pdf"
+        },
+        {
+          "document_type": "property_document",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 46
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\property_document.pdf"
+        },
+        {
+          "document_type": "diagnostic_report",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 46
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\diagnostic_report.pdf"
+        },
+        {
+          "document_type": "pan_card",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 37
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\pan_card.pdf"
+        },
+        {
+          "document_type": "salary_slip",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 40
+          },
+          "file_path": "temp\\uploads\\app_a05a2043fed6\\salary_slip.pdf"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "request_id": "req_8726aad94cd5",
+    "request_type": "both"
+  }
+}

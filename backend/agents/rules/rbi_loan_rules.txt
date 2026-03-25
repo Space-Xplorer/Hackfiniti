@@ -1,0 +1,112 @@
+RBI / NHB / IRDAI — Loan & Housing Finance Compliance Rules (India)
+=======================================================================
+Source: RBI Master Directions on Home Loans (2023), NHB Guidelines, IRDAI Regulations
+Effective for: Home Loans, Personal Loans, Business Loans
+
+──────────────────────────────────────────────────────────────────────
+SECTION 1: BORROWER ELIGIBILITY
+──────────────────────────────────────────────────────────────────────
+
+Rule 1.1 — Age of Borrower
+The minimum age at the time of loan application is 18 years.
+The maximum age at loan maturity shall not exceed 70 years for salaried borrowers and 75 years for self-employed borrowers.
+
+Rule 1.2 — Income Documentation
+All income claimed by the borrower must be supported by:
+  (a) Last 3 months' salary slips for salaried individuals.
+  (b) Last 2 years' ITR + CA-certified balance sheet for self-employed.
+  (c) Form 16 issued by the employer for the last 2 years.
+
+Rule 1.3 — CIBIL / Credit Score
+Applicants must have a minimum CIBIL TransUnion score of 650 for standard home loan approval.
+Applicants with a score between 600-649 require enhanced scrutiny and supervisor approval.
+Applicants below 600 are not eligible for standard loan products.
+
+Rule 1.4 — KYC Compliance
+Mandatory KYC documents under RBI KYC Master Direction 2016 (as amended):
+  (a) Proof of Identity: Aadhaar (UIDAI verified), PAN Card
+  (b) Proof of Address: Aadhaar, utility bill (< 3 months old), or registered lease agreement
+  (c) Aadhaar must be linked to the applicant's mobile number for e-KYC
+
+──────────────────────────────────────────────────────────────────────
+SECTION 2: LOAN-TO-VALUE (LTV) LIMITS — RBI CIRCULAR DOR.STR.REC.51
+──────────────────────────────────────────────────────────────────────
+
+Rule 2.1 — Home Loan LTV Ratios
+  (a) Loan ≤ ₹30 Lakh:  Maximum LTV = 90% of property value
+  (b) Loan ₹30L–₹75L:   Maximum LTV = 80% of property value
+  (c) Loan > ₹75 Lakh:  Maximum LTV = 75% of property value
+
+Rule 2.2 — Personal / Unsecured Loan
+  No property collateral required. Maximum loan amount capped at 10× net monthly income.
+  Maximum tenure: 60 months (5 years).
+
+Rule 2.3 — Business / MSME Loan
+  Maximum LTV for business premises: 75%
+  Loan amount subject to MSME Credit Guarantee Scheme limits where applicable.
+
+──────────────────────────────────────────────────────────────────────
+SECTION 3: FIXED OBLIGATION TO INCOME RATIO (FOIR)
+──────────────────────────────────────────────────────────────────────
+
+Rule 3.1 — Maximum FOIR
+RBI expects lenders to assess repayment capacity using FOIR.
+  (a) For salaried borrowers: FOIR should not exceed 50%.
+  (b) For self-employed borrowers: FOIR should not exceed 60%.
+  FOIR = (Total monthly obligations including proposed EMI) / Net monthly income × 100
+
+Rule 3.2 — Existing Obligations
+All existing EMIs (home, car, personal loan, credit card minimum payments) must be included in FOIR computation.
+
+──────────────────────────────────────────────────────────────────────
+SECTION 4: INTEREST RATE & RESET CLAUSES
+──────────────────────────────────────────────────────────────────────
+
+Rule 4.1 — Benchmark-Linked Rates
+Home loan and business loan floating rates must be linked to an external benchmark (RBI Repo Rate or MCLR).
+ARR (Annual Reset Rate) must be clearly disclosed to the borrower.
+
+Rule 4.2 — Prepayment Charges
+(a) Banks may NOT charge prepayment penalties on floating-rate home loans to individuals.
+(b) NBFCs may charge prepayment penalty not exceeding 2% of outstanding principal on fixed-rate loans.
+
+──────────────────────────────────────────────────────────────────────
+SECTION 5: ANTI-MONEY LAUNDERING & SANCTIONS
+──────────────────────────────────────────────────────────────────────
+
+Rule 5.1 — AML / CFT Obligations
+All loan applications must be screened against:
+  (a) PMLA (Prevention of Money Laundering Act) schedules
+  (b) UNODC sanctions list
+  (c) MHA (Ministry of Home Affairs) designated entities list
+
+Rule 5.2 — PEP Screening
+Politically Exposed Persons (PEPs) and their immediate family members require enhanced due diligence (EDD) and senior management approval before loan disbursement.
+
+──────────────────────────────────────────────────────────────────────
+SECTION 6: FAIR LENDING & NON-DISCRIMINATION
+──────────────────────────────────────────────────────────────────────
+
+Rule 6.1 — Fair Practices Code (FPC)
+Lenders must follow the Fair Practices Code as per RBI Circular DBOD.Leg.No.BC.104/09.07.007/2003.
+Loans must not be declined on the basis of:
+  - Religion, caste, gender (outside government-mandated schemes), or region.
+
+Rule 6.2 — Grievance Redressal
+A grievance redressal mechanism with a designated internal ombudsman must be in place.
+The Banking Ombudsman Scheme 2006 (as amended 2021) provides escalation to RBI Banking Ombudsman.
+
+──────────────────────────────────────────────────────────────────────
+SECTION 7: DISCLOSURE & TRANSPARENCY
+──────────────────────────────────────────────────────────────────────
+
+Rule 7.1 — Key Facts Statement (KFS)
+Effective October 1, 2024 (RBI circular RBI/2023-24/68):
+Lenders must provide a standardized Key Facts Statement to all retail and MSME borrowers:
+  (a) Annual Percentage Rate (APR)
+  (b) Total cost of borrowing
+  (c) Recovery and grievance contact
+
+Rule 7.2 — Credit Information Reporting
+All disbursed loans must be reported to at least one RBI-licensed Credit Information Company (CIBIL, Experian, Equifax, CRIF).
+Reporting must occur within 30 days of the event (disbursement, repayment, default).

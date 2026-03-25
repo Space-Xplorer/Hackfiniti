@@ -87,8 +87,8 @@ class UnderwritingAgent:
             raise RuntimeError(f"Underwriting agent initialization failed: {e}")
 
     def _load_models_from_fallback(self) -> None:
-        """Load models directly from the default backend/models directory."""
-        fallback_dir = Path(__file__).resolve().parents[2] / "models"
+        """Load models directly from backend/ml_models as a safety fallback."""
+        fallback_dir = Path(__file__).resolve().parents[1] / "ml_models"
 
         def _load(path: Path) -> Optional[Any]:
             if not path.exists():
@@ -629,6 +629,7 @@ def _confidence_from_features(values: List[Optional[float]]) -> float:
     return round(min(0.4 + available * 0.12, 0.95), 2)
 
 
+
 def _to_float(value: Any) -> Optional[float]:
     if value is None or value == "":
         return None
@@ -637,116 +638,100 @@ def _to_float(value: Any) -> Optional[float]:
     except (TypeError, ValueError):
         return None
 
-    def _align_to_model_features(self, df: pd.DataFrame, model: Any) -> pd.DataFrame:
-        """Align dataframe columns to model feature order when available."""
-        feature_names: Optional[List[str]] = None
-        for attr in ("feature_names_", "feature_names", "feature_names_in_"):
-            if hasattr(model, attr):
-                try:
-                    feature_names = list(getattr(model, attr))
-                    break
-                except Exception:
-                    continue
 
-        if not feature_names:
-            return df
+# ─────────────────────────────────────────────────────────────────────────────
+# Methods intentionally defined outside original class scope (orphaned by indent
+# bug) are restored here as module-level stubs that the class picks up via
+# a mixin pattern injected below.
+# ─────────────────────────────────────────────────────────────────────────────
 
-        for name in feature_names:
-            if name not in df.columns:
-                df[name] = 0
+def _ua_align_to_model_features(self, df: "pd.DataFrame", model: Any) -> "pd.DataFrame":
+    """Align dataframe columns to model feature order when available."""
+    feature_names: Optional[List[str]] = None
+    for attr in ("feature_names_", "feature_names", "feature_names_in_"):
+        if hasattr(model, attr):
+            try:
+                feature_names = list(getattr(model, attr))
+                break
+            except Exception:
+                continue
 
-        return df[feature_names]
-    
-    def _validate_loan_monotonicity(
-        self, 
-        applicant_data: Dict[str, Any], 
-        probability: float, 
-        reasoning: Dict[str, float]
-    ) -> None:
-        """
-        Validate monotonicity constraints for loan approval.
-        
-        Expected monotonic relationships:
-        - Higher CIBIL score → Higher approval probability
-        - Higher income → Higher approval probability
-        - Higher existing debt → Lower approval probability
-        - Higher loan-to-income ratio → Lower approval probability
-        
-        Args:
-            applicant_data: Raw applicant data
-            probability: Predicted approval probability
-            reasoning: Feature contributions from EBM
-        """
-        violations = []
-        
-        # Check CIBIL score (should be positive contributor for high scores)
-        cibil_score = applicant_data.get('cibil_score', 0)
-        cibil_contribution = reasoning.get('cibil_score', 0)
-        if cibil_score > 750 and cibil_contribution < 0:
-            violations.append(f"High CIBIL ({cibil_score}) has negative contribution ({cibil_contribution:.3f})")
-        
-        # Check income (should be positive contributor for high income)
-        income = applicant_data.get('income_annum', 0) or applicant_data.get('annual_income', 0)
-        income_contribution = reasoning.get('income_annum', 0) or reasoning.get('annual_income', 0)
-        if income > 1000000 and income_contribution < 0:
-            violations.append(f"High income (₹{income:,}) has negative contribution ({income_contribution:.3f})")
-        
-        # Check loan-to-income ratio (should be negative contributor for high ratios)
-        loan_amount = applicant_data.get('loan_amount', 0)
-        if income > 0:
-            lti_ratio = loan_amount / income
-            lti_contribution = reasoning.get('loan_to_income_ratio', 0)
-            if lti_ratio > 5 and lti_contribution > 0:
-                violations.append(f"High LTI ratio ({lti_ratio:.2f}) has positive contribution ({lti_contribution:.3f})")
-        
-        # Log violations (non-blocking)
-        if violations:
-            logger.warning(f"Monotonicity violations detected for loan approval: {'; '.join(violations)}")
-        else:
-            logger.debug("No monotonicity violations detected for loan")
-    
-    def _validate_insurance_monotonicity(
-        self,
-        applicant_data: Dict[str, Any],
-        premium: float,
-        reasoning: Dict[str, float]
-    ) -> None:
-        """
-        Validate monotonicity constraints for insurance premium.
-        
-        Expected monotonic relationships:
-        - Higher age → Higher premium
-        - Pre-existing conditions → Higher premium
-        - Higher BMI (if diabetic/hypertensive) → Higher premium
-        
-        Args:
-            applicant_data: Raw applicant data
-            premium: Predicted insurance premium
-            reasoning: Feature contributions from EBM
-        """
-        violations = []
-        
-        # Check age (should be positive contributor for older applicants)
-        age = applicant_data.get('age', 0)
-        age_contribution = reasoning.get('age', 0)
-        if age > 50 and age_contribution < 0:
-            violations.append(f"High age ({age}) has negative contribution ({age_contribution:.3f})")
-        
-        # Check pre-existing conditions
-        conditions = ['diabetes', 'blood_pressure_problems', 'any_transplants', 'any_chronic_diseases']
-        for condition in conditions:
-            has_condition = applicant_data.get(condition, False)
-            condition_contribution = reasoning.get(condition, 0)
-            
-            # If condition is present, contribution should generally be positive (increase premium)
-            if has_condition and condition_contribution < -0.1:  # Allow small negative values
-                violations.append(f"Condition '{condition}' has negative contribution ({condition_contribution:.3f})")
-        
-        # Log violations (non-blocking)
-        if violations:
-            logger.warning(f"Monotonicity violations detected for insurance premium: {'; '.join(violations)}")
-        else:
-            logger.debug("No monotonicity violations detected for insurance")
+    if not feature_names:
+        return df
+
+    for name in feature_names:
+        if name not in df.columns:
+            df[name] = 0
+
+    return df[feature_names]
+
+
+def _ua_validate_loan_monotonicity(
+    self,
+    applicant_data: Dict[str, Any],
+    probability: float,
+    reasoning: Dict[str, float],
+) -> None:
+    """Validate monotonicity constraints for loan approval (non-blocking, logs warnings)."""
+    violations = []
+
+    cibil_score = applicant_data.get("cibil_score", 0)
+    cibil_contribution = reasoning.get("cibil_score", 0)
+    if cibil_score > 750 and cibil_contribution < 0:
+        violations.append(f"High CIBIL ({cibil_score}) has negative contribution ({cibil_contribution:.3f})")
+
+    income = applicant_data.get("income_annum", 0) or applicant_data.get("annual_income", 0)
+    income_contribution = reasoning.get("income_annum", 0) or reasoning.get("annual_income", 0)
+    if income > 1000000 and income_contribution < 0:
+        violations.append(f"High income (₹{income:,}) has negative contribution ({income_contribution:.3f})")
+
+    loan_amount = applicant_data.get("loan_amount", 0)
+    if income > 0:
+        lti_ratio = loan_amount / income
+        lti_contribution = reasoning.get("loan_to_income_ratio", 0)
+        if lti_ratio > 5 and lti_contribution > 0:
+            violations.append(f"High LTI ratio ({lti_ratio:.2f}) has positive contribution ({lti_contribution:.3f})")
+
+    if violations:
+        logger.warning(f"Monotonicity violations detected for loan approval: {'; '.join(violations)}")
+    else:
+        logger.debug("No monotonicity violations detected for loan")
+
+
+def _ua_validate_insurance_monotonicity(
+    self,
+    applicant_data: Dict[str, Any],
+    premium: float,
+    reasoning: Dict[str, float],
+) -> None:
+    """Validate monotonicity constraints for insurance premium (non-blocking, logs warnings)."""
+    violations = []
+
+    age = applicant_data.get("age", 0)
+    age_contribution = reasoning.get("age", 0)
+    if age > 50 and age_contribution < 0:
+        violations.append(f"High age ({age}) has negative contribution ({age_contribution:.3f})")
+
+    for condition in ["diabetes", "blood_pressure_problems", "any_transplants", "any_chronic_diseases"]:
+        has_condition = applicant_data.get(condition, False)
+        condition_contribution = reasoning.get(condition, 0)
+        if has_condition and condition_contribution < -0.1:
+            violations.append(f"Condition '{condition}' has negative contribution ({condition_contribution:.3f})")
+
+    if violations:
+        logger.warning(f"Monotonicity violations detected for insurance premium: {'; '.join(violations)}")
+    else:
+        logger.debug("No monotonicity violations detected for insurance")
+
+
+# Attach the orphaned methods to UnderwritingAgent so self.* calls work correctly.
+UnderwritingAgent._align_to_model_features = _ua_align_to_model_features  # type: ignore[attr-defined]
+UnderwritingAgent._validate_loan_monotonicity = _ua_validate_loan_monotonicity  # type: ignore[attr-defined]
+UnderwritingAgent._validate_insurance_monotonicity = _ua_validate_insurance_monotonicity  # type: ignore[attr-defined]
+
+
+
+
 
 
 def process_underwriting(state: ApplicationState) -> ApplicationState:

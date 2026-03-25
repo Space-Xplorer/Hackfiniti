@@ -1,0 +1,60 @@
+{
+  "payload": {
+    "ocr_extracted_data": {},
+    "ocr_documents": [
+      {
+        "document_type": "aadhaar_card",
+        "file_path": "temp\\uploads\\app_784341029779\\aadhaar_card.pdf",
+        "text": "mock text extracted from aadhaar_card.pdf",
+        "confidence": 93.0,
+        "text_length": 41
+      },
+      {
+        "document_type": "salary_slip",
+        "file_path": "temp\\uploads\\app_784341029779\\salary_slip.pdf",
+        "text": "mock text extracted from salary_slip.pdf",
+        "confidence": 93.0,
+        "text_length": 40
+      },
+      {
+        "document_type": "bank_statement",
+        "file_path": "temp\\uploads\\app_784341029779\\bank_statement.pdf",
+        "text": "mock text extracted from bank_statement.pdf",
+        "confidence": 93.0,
+        "text_length": 43
+      },
+      {
+        "document_type": "property_document",
+        "file_path": "temp\\uploads\\app_784341029779\\property_document.pdf",
+        "text": "mock text extracted from property_document.pdf",
+        "confidence": 93.0,
+        "text_length": 46
+      },
+      {
+        "document_type": "diagnostic_report",
+        "file_path": "temp\\uploads\\app_784341029779\\diagnostic_report.pdf",
+        "text": "mock text extracted from diagnostic_report.pdf",
+        "confidence": 93.0,
+        "text_length": 46
+      },
+      {
+        "document_type": "pan_card",
+        "file_path": "temp\\uploads\\app_784341029779\\pan_card.pdf",
+        "text": "mock text extracted from pan_card.pdf",
+        "confidence": 93.0,
+        "text_length": 37
+      },
+      {
+        "document_type": "salary_slip",
+        "file_path": "temp\\uploads\\app_784341029779\\salary_slip.pdf",
+        "text": "mock text extracted from salary_slip.pdf",
+        "confidence": 93.0,
+        "text_length": 40
+      }
+    ]
+  },
+  "metadata": {
+    "request_id": "req_91e6c46956df",
+    "request_type": "both"
+  }
+}

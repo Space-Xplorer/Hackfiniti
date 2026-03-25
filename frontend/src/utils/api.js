@@ -1,4 +1,4 @@
-﻿const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 const requestJson = async (path, options = {}) => {
@@ -16,9 +16,11 @@ const requestJson = async (path, options = {}) => {
   const data = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
-    // FastAPI 422 returns { detail: { message, errors, ... } } or { detail: "string" }
+    // FastAPI 422 returns { detail: [{...}] } pattern
     const detail = data.detail;
-    if (detail && typeof detail === "object" && detail.errors) {
+    if (Array.isArray(detail)) {
+      throw new Error(detail.map(e => `${e.loc?.slice(-1)[0] || 'Field'}: ${e.msg}`).join(", "));
+    } else if (detail && typeof detail === "object" && detail.errors) {
       throw new Error(JSON.stringify(detail));
     }
     const message = (typeof detail === "string" ? detail : null) || data.message || data.error || "Request failed";
@@ -59,7 +61,11 @@ export const registerUser = async (payload) => {
   }
 
   if (!response.ok) {
-    const message = data.error || data.message || "Request failed";
+    const detail = data.detail;
+    if (Array.isArray(detail)) {
+      throw new Error(detail.map(e => `${e.loc?.slice(-1)[0] || 'Field'}: ${e.msg}`).join(", "));
+    }
+    const message = (typeof detail === "string" ? detail : null) || data.error || data.message || "Request failed";
     throw new Error(message);
   }
 

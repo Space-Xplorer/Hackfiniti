@@ -1,0 +1,24 @@
+{
+  "payload": {
+    "loan": {
+      "loan_type": "personal",
+      "loan_amount_requested": 12345678.0,
+      "tenure_months": 12.0,
+      "property_value": 8500000.0,
+      "emi": 1108482.84,
+      "foir": 16.10578155019643,
+      "ltv": 1.452432705882353,
+      "avg_salary_6m": 69746.0,
+      "existing_emi": 14831.0,
+      "income_stability_score": 0.5,
+      "credit_risk_bucket": "high",
+      "age_risk_bucket": "medium",
+      "credit_score": 345.0
+    },
+    "health": {}
+  },
+  "metadata": {
+    "request_id": "req_245f1670283e",
+    "request_type": "loan"
+  }
+}

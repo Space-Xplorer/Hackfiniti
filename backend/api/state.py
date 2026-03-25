@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from typing import Any
 from uuid import uuid4
 
@@ -8,17 +8,6 @@ APPLICATIONS_DB: dict[str, dict[str, Any]] = {}   # app_id -> full application o
 WORKFLOW_DB: dict[str, dict[str, Any]] = {}       # app_id -> workflow result object
 WORKFLOW_EVENTS: dict[str, list[dict[str, Any]]] = {}   # app_id -> list of { agent, status }
 OTP_DB: dict[str, dict[str, Any]] = {}  # mobile -> {otp, expires_at}
-
-
-def create_token(email: str) -> str:
-    return f"token::{email}"
-
-
-def parse_token(token: str):
-    """Extract email from 'token::<email>' format. Returns None if invalid."""
-    if token and token.startswith("token::"):
-        return token[len("token::"):]
-    return None
 
 
 def new_id(prefix: str) -> str:

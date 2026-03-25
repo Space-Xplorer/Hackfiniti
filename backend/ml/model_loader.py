@@ -5,11 +5,15 @@ This module implements a singleton for loading and caching ML models.
 """
 
 import pickle
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 import logging
 
 logger = logging.getLogger(__name__)
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_MODELS_DIR = BACKEND_ROOT / "ml_models"
 
 
 class ModelLoader:
@@ -23,15 +27,15 @@ class ModelLoader:
     _models: Dict[str, Any] = {}
     _initialized = False
     
-    def __new__(cls, models_dir: str = "models"):
+    def __new__(cls, models_dir: str = "ml_models"):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.models_dir = Path(models_dir)
+            cls._instance.models_dir = cls._instance._resolve_models_dir(models_dir)
             cls._instance._initialized = True
-            logger.info(f"ModelLoader initialized with directory: {models_dir}")
+            logger.info(f"ModelLoader initialized with directory: {cls._instance.models_dir}")
         return cls._instance
     
-    def __init__(self, models_dir: str = "models"):
+    def __init__(self, models_dir: str = "ml_models"):
         """
         Initialize ModelLoader.
         
@@ -40,6 +44,31 @@ class ModelLoader:
         """
         # Initialization happens in __new__ to ensure singleton pattern works correctly
         pass
+
+    def _resolve_models_dir(self, models_dir: str) -> Path:
+        """Resolve model directory robustly across working directories."""
+        env_dir = os.getenv("DAKSHA_MODELS_DIR")
+        if env_dir:
+            env_path = Path(env_dir).expanduser()
+            if env_path.exists():
+                return env_path
+
+        if not models_dir or models_dir in {"models", "ml_models"}:
+            return DEFAULT_MODELS_DIR
+
+        requested = Path(models_dir).expanduser()
+        if requested.is_absolute():
+            return requested
+
+        cwd_relative = Path.cwd() / requested
+        if cwd_relative.exists():
+            return cwd_relative
+
+        backend_relative = BACKEND_ROOT / requested
+        if backend_relative.exists():
+            return backend_relative
+
+        return DEFAULT_MODELS_DIR
     
     def load_model(self, model_name: str) -> Optional[Any]:
         """
@@ -132,7 +161,7 @@ class ModelLoader:
 
 
 # Convenience function
-def get_model_loader(models_dir: str = "models") -> ModelLoader:
+def get_model_loader(models_dir: str = "ml_models") -> ModelLoader:
     """
     Get the ModelLoader singleton instance.
     

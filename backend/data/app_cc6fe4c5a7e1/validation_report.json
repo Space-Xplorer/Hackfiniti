@@ -1,0 +1,45 @@
+{
+  "payload": {
+    "fraud_analysis": {
+      "fraud_risk_score": 0.0,
+      "anomaly_flags": [],
+      "confidence_level": "low",
+      "document_checks": [
+        {
+          "document_type": "aadhaar_card",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 41
+          },
+          "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\aadhaar_card.pdf"
+        },
+        {
+          "document_type": "salary_slip",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 40
+          },
+          "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\salary_slip.pdf"
+        },
+        {
+          "document_type": "bank_statement",
+          "fraud_score": 0.0,
+          "flags": [],
+          "heuristics": {
+            "file_exists": true,
+            "text_length": 43
+          },
+          "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\bank_statement.pdf"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "request_id": "req_33fd8a9f6ec2",
+    "request_type": "loan"
+  }
+}

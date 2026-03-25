@@ -1,23 +1,52 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+"""
+Authentication router — uses real JWT (python-jose) + bcrypt (passlib) via core/security.py.
+
+Security improvements over previous version:
+  - Passwords hashed with bcrypt (was SHA-256, a non-password hash)
+  - Tokens are signed JWTs with expiry (were plain "token::<email>" strings)
+  - Separate access + refresh tokens with different TTLs
+  - Token verification is cryptographic, not a string-prefix check
+"""
+
+import os
 import random
 import time
-import os
+from typing import Optional
+
 import httpx
-import hashlib
-from dotenv import load_dotenv
+from fastapi import APIRouter, HTTPException, Request
+from jose import JWTError
+from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
-load_dotenv()
-
-from api.state import USERS_DB, OTP_DB, create_token, new_id
+from api.state import USERS_DB, OTP_DB, new_id
+from core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter(tags=["auth"])
+# Limiter is injected via request.app.state.limiter; we'll use a local shim that
+# delegates so we don't need a circular import with main.py
+from slowapi import _rate_limit_exceeded_handler
+
+# Instead of defining a second limiter here that hardcodes `get_remote_address`,
+# we import the shared one we define in a new module. Let's assume we create core.limiter.
+from core.limiter import limiter
+
 
 OTP_TTL = 120  # 2 minutes
 
 
-async def _send_sms(mobile: str, otp: str):
+# ─────────────────────────────────────────────────────────────────────────────
+# Internal helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _send_sms(mobile: str, otp: str) -> None:
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
     from_number = os.getenv("TWILIO_FROM_NUMBER", "")
@@ -33,7 +62,10 @@ async def _send_sms(mobile: str, otp: str):
             data={
                 "From": from_number,
                 "To": f"+91{mobile}",
-                "Body": f"Welcome to Daksha! Your verification OTP is {otp}. It expires in 2 minutes. Never share this with anyone.",
+                "Body": (
+                    f"Welcome to Daksha! Your verification OTP is {otp}. "
+                    "It expires in 2 minutes. Never share this with anyone."
+                ),
             },
             timeout=10,
         )
@@ -41,6 +73,10 @@ async def _send_sms(mobile: str, otp: str):
             print(f"[DAKSHA SMS ERROR] {resp.text}")
             raise HTTPException(status_code=502, detail="Failed to send OTP via SMS")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Request / Response models
+# ─────────────────────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
     email: str
@@ -53,6 +89,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class SendOtpPayload(BaseModel):
     mobile: str
 
@@ -62,12 +102,13 @@ class VerifyOtpPayload(BaseModel):
     otp: str
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
+# ─────────────────────────────────────────────────────────────────────────────
+# OTP routes
+# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/send-otp")
-async def send_otp(payload: SendOtpPayload) -> dict:
+@limiter.limit("5/minute")
+async def send_otp(request: Request, payload: SendOtpPayload) -> dict:
     mobile = payload.mobile.strip()
     if len(mobile) < 10:
         raise HTTPException(status_code=400, detail="Invalid mobile number")
@@ -79,7 +120,7 @@ async def send_otp(payload: SendOtpPayload) -> dict:
 
 
 @router.post("/verify-otp")
-async def verify_otp(payload: VerifyOtpPayload) -> dict:
+async def verify_otp(request: Request, payload: VerifyOtpPayload) -> dict:
     mobile = payload.mobile.strip()
     record = OTP_DB.get(mobile)
     if not record:
@@ -93,14 +134,19 @@ async def verify_otp(payload: VerifyOtpPayload) -> dict:
     return {"verified": True}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Auth routes
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/register")
-def register(req: RegisterRequest):
+@limiter.limit("10/minute")
+def register(request: Request, req: RegisterRequest) -> dict:
     if req.email in USERS_DB:
         raise HTTPException(status_code=409, detail="User already exists")
     user = {
         "id": new_id("user"),
         "email": req.email,
-        "password": hash_password(req.password),
+        "password": hash_password(req.password),  # bcrypt — NOT sha256
         "name": req.name or "",
         "role": "user",
     }
@@ -112,14 +158,39 @@ def register(req: RegisterRequest):
 
 
 @router.post("/login")
-def login(req: LoginRequest):
+@limiter.limit("10/minute")
+def login(request: Request, req: LoginRequest) -> dict:
     user = USERS_DB.get(req.email)
-    if not user or user["password"] != hash_password(req.password):
+    if not user or not verify_password(req.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_token(req.email)
+
+    access_token = create_access_token(subject=req.email)
+    refresh_token = create_refresh_token(subject=req.email)
+
     return {
         "message": "Login successful",
-        "access_token": token,
-        "refresh_token": token,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
         "user": {k: v for k, v in user.items() if k != "password"},
+    }
+
+
+@router.post("/refresh")
+def refresh_token_endpoint(req: RefreshRequest) -> dict:
+    """Exchange a valid refresh token for a new access + refresh token pair."""
+    try:
+        email = decode_token(req.refresh_token)
+    except JWTError as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid or expired refresh token: {exc}") from exc
+
+    if email not in USERS_DB:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    new_access = create_access_token(subject=email)
+    new_refresh = create_refresh_token(subject=email)
+    return {
+        "access_token": new_access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer",
     }

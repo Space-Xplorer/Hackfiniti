@@ -1,0 +1,31 @@
+{
+  "payload": {
+    "loan": {
+      "approval_probability": 0.881,
+      "predicted_class": "approved",
+      "risk_grade": "A",
+      "feature_contributions": {
+        "ltv": 0.068,
+        "credit_score": 0.063,
+        "income_stability_score": 0.15,
+        "age_risk_bucket": 0.05
+      },
+      "confidence_score": 0.76
+    },
+    "insurance": {
+      "premium_amount": 10464.0,
+      "loading_percentage": 9.0,
+      "risk_category": "low",
+      "feature_contributions": {
+        "medical_risk_score": 0.09,
+        "lifestyle_risk_score": 0.0,
+        "age": -0.02,
+        "bmi": -0.02
+      }
+    }
+  },
+  "metadata": {
+    "request_id": "req_9978fcec29b1",
+    "request_type": "both"
+  }
+}

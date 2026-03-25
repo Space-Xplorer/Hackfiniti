@@ -1,0 +1,39 @@
+{
+  "payload": {
+    "loan": {
+      "approval_probability": 0.731,
+      "predicted_class": "approved",
+      "risk_grade": "B",
+      "feature_contributions": {
+        "no_of_dependents": -0.04822037068131379,
+        "education": 0.0007039394960774053,
+        "self_employed": -0.010565360023053496,
+        "income_annum": 0.4819933596732555,
+        "loan_amount": 0.1152361217375236,
+        "loan_term": 2.114202226657258,
+        "cibil_score": -3.1473216141717475,
+        "residential_assets_value": 0.12766941321251965,
+        "commercial_assets_value": -0.06839540280826611,
+        "luxury_assets_value": 0.2572644433584328,
+        "bank_asset_value": 0.354984714828538,
+        "loan_to_income_ratio": 0.18858416714385354,
+        "total_assets": -0.5435746103366303,
+        "income_annum & loan_term": -0.7861941561088052,
+        "income_annum & cibil_score": 1.1606128241255127,
+        "loan_amount & cibil_score": 0.3252732976677156,
+        "loan_term & cibil_score": 2.1779774447451508,
+        "loan_term & luxury_assets_value": 0.20125059211127785,
+        "cibil_score & residential_assets_value": 0.2013470782967244,
+        "cibil_score & commercial_assets_value": -0.3453720580727381,
+        "cibil_score & luxury_assets_value": 0.48545520216390853,
+        "cibil_score & bank_asset_value": -0.673446047280975,
+        "cibil_score & total_assets": 0.12786497540991462
+      },
+      "confidence_score": 0.76
+    }
+  },
+  "metadata": {
+    "request_id": "req_9bf51e369d8a",
+    "request_type": "loan"
+  }
+}

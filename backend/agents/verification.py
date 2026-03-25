@@ -1,4 +1,4 @@
-﻿"""
+"""
 Verification Agent with LLM-based sanity checking.
 
 This module implements a final verification layer that uses LLM to validate
@@ -207,11 +207,19 @@ Task: Verify if this decision is reasonable. Consider:
                 logger.error(f"Pydantic validation failed (async): {e}")
                 return self._fallback_verification("REVIEW")
         except Exception as e:
-            logger.error(f"Loan verification failed (async, likely rate limit): {e}")
-            # Return fallback verification instead of failing workflow
-            prediction = state.get("loan_prediction", {})
-            decision = "APPROVED" if prediction.get("approved") else "REJECTED"
-            return self._fallback_verification(decision)
+            logger.error(
+                "Loan verification LLM call failed — flagging for human review: %s", e
+            )
+            # FAIL-SAFE: on LLM failure we do NOT silently approve or reject.
+            # Flag for mandatory human review instead.
+            return {
+                "verified": False,
+                "decision": "REVIEW",
+                "confidence": 0.0,
+                "concerns": [f"Automated verification unavailable ({type(e).__name__}) — manual review required"],
+                "recommendation": "ESCALATE_TO_HUMAN",
+                "requires_human_review": True,
+            }
     
     def _verify_insurance_decision(self, state: ApplicationState) -> Dict[str, Any]:
         """

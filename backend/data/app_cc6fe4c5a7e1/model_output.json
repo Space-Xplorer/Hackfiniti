@@ -1,0 +1,20 @@
+{
+  "payload": {
+    "loan": {
+      "approval_probability": 0.667,
+      "predicted_class": "approved",
+      "risk_grade": "B",
+      "feature_contributions": {
+        "ltv": 0.067,
+        "credit_score": 0.0,
+        "income_stability_score": 0.0,
+        "age_risk_bucket": 0.05
+      },
+      "confidence_score": 0.76
+    }
+  },
+  "metadata": {
+    "request_id": "req_33fd8a9f6ec2",
+    "request_type": "loan"
+  }
+}

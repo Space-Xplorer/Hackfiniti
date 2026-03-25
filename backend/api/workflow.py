@@ -3,7 +3,7 @@ import base64
 import importlib
 import json
 import logging
-import random
+from io import BytesIO
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query
@@ -20,6 +20,7 @@ workflow_logger = logging.getLogger("workflow")
 REQUIRED_DOC_TYPES = {
     "loan": {"bank_statement", "salary_slip", "aadhaar_card"},
     "insurance": {"diagnostic_report", "aadhaar_card"},
+    "both": {"bank_statement", "salary_slip", "diagnostic_report", "aadhaar_card"},
 }
 
 # Fields each document type is expected to provide
@@ -35,6 +36,132 @@ DOC_FIELD_MAP = {
 
 # Minimum file size in bytes to be considered a real document (not a blank/random file)
 MIN_DOC_SIZE_BYTES = 500
+
+SUPPORTED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/jpg", "image/png"}
+
+DOC_TYPE_HINTS = {
+    "aadhaar_card": ["aadhaar", "aadhar", "uidai"],
+    "voter_id": ["voter", "election", "epic"],
+    "pan_card": ["pan", "permanent account number", "income tax"],
+    "salary_slip": ["salary", "payslip", "pay slip"],
+    "bank_statement": ["bank statement", "account statement"],
+    "diagnostic_report": ["diagnostic", "lab report", "cholesterol", "hba1c", "blood sugar"],
+}
+
+
+def _detect_file_signature(raw: bytes) -> str:
+    if raw.startswith(b"%PDF"):
+        return "application/pdf"
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    return "unknown"
+
+
+def _extract_quick_text(raw: bytes, mime: str, name: str) -> str:
+    """Best-effort text extraction for semantic doc-type validation."""
+    lowered_name = (name or "").lower()
+    if mime == "application/pdf" or lowered_name.endswith(".pdf"):
+        try:
+            from PyPDF2 import PdfReader
+            reader = PdfReader(BytesIO(raw))
+            snippets: list[str] = []
+            for page in reader.pages[:2]:
+                text = page.extract_text() or ""
+                if text:
+                    snippets.append(text)
+            return " ".join(snippets).lower()
+        except Exception:
+            return ""
+    if mime in {"image/png", "image/jpeg", "image/jpg"} or lowered_name.endswith((".png", ".jpg", ".jpeg")):
+        try:
+            from PIL import Image
+            import pytesseract
+
+            image = Image.open(BytesIO(raw))
+            image.load()
+
+            # Normalize problematic PNG modes (palette/alpha/grayscale) to improve OCR stability.
+            if image.mode in {"RGBA", "LA"}:
+                background = Image.new("RGB", image.size, (255, 255, 255))
+                alpha = image.split()[-1]
+                background.paste(image, mask=alpha)
+                image = background
+            elif image.mode == "P":
+                image = image.convert("RGB")
+            elif image.mode not in {"RGB", "L"}:
+                image = image.convert("RGB")
+
+            if image.mode == "L":
+                image = image.convert("RGB")
+
+            text = pytesseract.image_to_string(image)
+            return (text or "").lower()
+        except Exception:
+            return ""
+    return ""
+
+
+def _required_fields_for_request_type(request_type: str, uploaded_documents: list[dict]) -> list[str]:
+    required_doc_types = REQUIRED_DOC_TYPES.get(request_type, set())
+    uploaded_by_type = {
+        (doc.get("type") or "").strip().lower(): doc
+        for doc in uploaded_documents or []
+        if isinstance(doc, dict)
+    }
+
+    fields: list[str] = []
+    for doc_type in required_doc_types:
+        if doc_type in uploaded_by_type:
+            fields.extend(DOC_FIELD_MAP.get(doc_type, []))
+    return sorted(set(fields))
+
+
+def _compute_required_info_flags(
+    extracted_data: dict,
+    request_type: str,
+    uploaded_documents: list[dict],
+) -> dict:
+    required_fields = _required_fields_for_request_type(request_type, uploaded_documents)
+    missing_fields: list[str] = []
+
+    for field in required_fields:
+        value = extracted_data.get(field)
+        if value is None:
+            missing_fields.append(field)
+            continue
+        if isinstance(value, str) and not value.strip():
+            missing_fields.append(field)
+            continue
+        if isinstance(value, (list, dict)) and len(value) == 0:
+            missing_fields.append(field)
+
+    return {
+        "required_fields": required_fields,
+        "missing_required_fields": sorted(set(missing_fields)),
+        "required_info_complete": len(missing_fields) == 0,
+    }
+
+
+def _infer_document_type(name: str, quick_text: str) -> str | None:
+    haystack = f"{(name or '').lower()} {quick_text or ''}"
+    for doc_type, hints in DOC_TYPE_HINTS.items():
+        if any(hint in haystack for hint in hints):
+            return doc_type
+    return None
+
+
+def _deterministic_confidence(size: int, mime: str, inferred: str | None, declared: str) -> float:
+    score = 45.0
+    score += min(35.0, size / 12000.0 * 20.0)
+    if mime in SUPPORTED_MIME_TYPES:
+        score += 12.0
+    if inferred and inferred == declared:
+        score += 8.0
+    if inferred and inferred != declared:
+        score -= 45.0
+    return round(max(0.0, min(98.0, score)), 1)
 
 
 def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tuple[list[str], dict[str, float]]:
@@ -75,49 +202,55 @@ def _validate_documents(uploaded_documents: list[dict], request_type: str) -> tu
             ocr_logger.warning("doc_invalid_empty_or_corrupt type=%s name=%s size_bytes=%s", doc_type, name, size)
             continue
 
-        # Check MIME type matches expected for document type
-        valid_mimes = {"application/pdf", "image/jpeg", "image/jpg", "image/png"}
-        if mime and mime not in valid_mimes:
+        file_sig = _detect_file_signature(raw)
+
+        # MIME checks
+        if mime and mime not in SUPPORTED_MIME_TYPES:
             errors.append(f"'{name}' has unsupported format '{mime}'. Use PDF, JPG, or PNG.")
             confidence_scores[doc_type] = 10.0
             ocr_logger.warning("doc_invalid_mime type=%s name=%s mime=%s", doc_type, name, mime)
             continue
 
-        # Simulate OCR confidence based on file size and type
-        # Larger, properly-typed files get higher confidence
-        base_confidence = min(95.0, 50.0 + (size / 10000) * 20)
-        noise = random.uniform(-5, 5)
-        confidence_scores[doc_type] = round(max(10.0, min(98.0, base_confidence + noise)), 1)
+        if file_sig == "unknown":
+            errors.append(f"'{name}' is not a valid PDF/JPG/PNG file. Please upload a proper scan.")
+            confidence_scores[doc_type] = 5.0
+            ocr_logger.warning("doc_invalid_signature type=%s name=%s", doc_type, name)
+            continue
+
+        if mime and file_sig != "unknown":
+            # Normalize jpg/jpeg for comparison
+            norm_mime = "image/jpeg" if mime == "image/jpg" else mime
+            if file_sig != norm_mime:
+                errors.append(f"'{name}' file content does not match mime type '{mime}'. Re-export and upload again.")
+                confidence_scores[doc_type] = 12.0
+                ocr_logger.warning("doc_mime_signature_mismatch type=%s name=%s mime=%s signature=%s", doc_type, name, mime, file_sig)
+                continue
+
+        quick_text = _extract_quick_text(raw, mime or file_sig, name)
+        inferred_type = _infer_document_type(name, quick_text)
+
+        if inferred_type and inferred_type != doc_type:
+            errors.append(
+                f"'{name}' appears to be '{inferred_type.replace('_', ' ')}' but was uploaded as '{doc_type.replace('_', ' ')}'."
+            )
+            confidence_scores[doc_type] = _deterministic_confidence(size, mime or file_sig, inferred_type, doc_type)
+            ocr_logger.warning(
+                "doc_type_mismatch declared=%s inferred=%s name=%s",
+                doc_type,
+                inferred_type,
+                name,
+            )
+            continue
+
+        confidence_scores[doc_type] = _deterministic_confidence(size, mime or file_sig, inferred_type, doc_type)
         ocr_logger.info("doc_validated type=%s confidence=%s", doc_type, confidence_scores[doc_type])
 
     return errors, confidence_scores
 
 
 def _extract_fields(uploaded_documents: list[dict], declared_data: dict) -> dict:
-    """Simulate OCR field extraction — prefill from declared data, add mock values for missing fields."""
+    """Simulate OCR extraction by using trustworthy declared/prefill data only."""
     extracted = dict(declared_data)
-    uploaded_types = {doc.get("type") for doc in uploaded_documents}
-
-    # For each uploaded doc type, simulate extracting its fields
-    mock_values = {
-        "declared_monthly_income": 85000,
-        "declared_existing_emi": 5000,
-        "employment_type": "Salaried",
-        "name": declared_data.get("name", ""),
-        "dob": declared_data.get("dob", ""),
-        "gender": "Male",
-        "age": 31,
-        "height": 170,
-        "weight": 72,
-        "property_value": 5000000,
-        "property_city": declared_data.get("city", ""),
-    }
-
-    for doc_type in uploaded_types:
-        for field in DOC_FIELD_MAP.get(doc_type, []):
-            if field not in extracted or not extracted[field]:
-                extracted[field] = mock_values.get(field, "")
-
     return extracted
 
 
@@ -241,6 +374,8 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
         if raw.get("aadhaar_card", {}).get("dob"):
             prefill["dob"] = raw["aadhaar_card"]["dob"]
 
+        required_info = _compute_required_info_flags(prefill, request_type, uploaded_documents)
+
         return {
             "ocr_extracted_data": prefill,
             "declared_prefill": prefill,
@@ -248,6 +383,7 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
             "document_freshness_passed": freshness_ok,
             "confidence_score": confidence,
             "ocr_status": ocr_status,
+            **required_info,
         }
 
     # --- Path B: fallback — validate raw uploaded documents ---
@@ -272,6 +408,7 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
         )
 
     extracted = _extract_fields(uploaded_documents, declared_data)
+    required_info = _compute_required_info_flags(extracted, request_type, uploaded_documents)
     ocr_logger.info("preview_ocr_success request_type=%s docs=%s", request_type, len(uploaded_documents))
     return {
         "ocr_extracted_data": extracted,
@@ -281,6 +418,7 @@ async def preview_ocr(payload: dict, authorization: str | None = Header(default=
         "consistency_flags": [],
         "document_freshness_passed": True,
         "ocr_status": "success",
+        **required_info,
     }
 
 
@@ -292,30 +430,34 @@ def _agent_event(agent: str, status: str, error: str | None = None) -> dict[str,
 
 
 def _run_kyc_step(state: dict[str, Any], events: list[dict[str, str]]) -> dict[str, Any]:
-    declared = state.get("declared_data", {}) or {}
-    aadhaar = str(state.get("submitted_aadhaar") or declared.get("aadhaar") or declared.get("aadhaar_number") or "")
-    name = str(state.get("submitted_name") or declared.get("name") or "").strip()
-
-    if name and aadhaar.isdigit() and len(aadhaar) == 12:
-        state["kyc_verified"] = True
-        state["kyc_data"] = {
-            "name": name,
-            "aadhaar_number": aadhaar,
-            "dob": state.get("submitted_dob") or declared.get("dob") or "",
-        }
-        events.append(_agent_event("kyc", "complete"))
-        workflow_logger.info("request_id=%s agent=kyc status=complete", state.get("request_id", "unknown"))
-    else:
+    """Delegate KYC validation to the real KYC agent (Verhoeff + PAN + name checks)."""
+    try:
+        import agents.kyc as kyc_module
+        state = kyc_module.run(state)
+        if state.get("kyc_verified"):
+            events.append(_agent_event("kyc", "complete"))
+            workflow_logger.info(
+                "request_id=%s agent=kyc status=complete score=%.2f",
+                state.get("request_id", "unknown"),
+                state.get("kyc_score", 0.0),
+            )
+        else:
+            reason = state.get("rejection_reason", "KYC validation failed")
+            events.append(_agent_event("kyc", "failed", reason))
+            workflow_logger.warning(
+                "request_id=%s agent=kyc status=failed reason=%s mismatches=%s",
+                state.get("request_id", "unknown"),
+                reason,
+                state.get("kyc_mismatches", []),
+            )
+    except Exception as exc:
         state["kyc_verified"] = False
         state["rejected"] = True
-        state["rejection_reason"] = "KYC data incomplete or invalid Aadhaar."
-        state.setdefault("errors", []).append("KYC validation failed")
-        events.append(_agent_event("kyc", "failed", "KYC validation failed"))
-        workflow_logger.warning(
-            "request_id=%s agent=kyc status=failed reason=%s",
-            state.get("request_id", "unknown"),
-            state.get("rejection_reason"),
-        )
+        state["rejection_reason"] = f"KYC system error: {exc}"
+        state.setdefault("errors", []).append(str(exc))
+        events.append(_agent_event("kyc", "failed", str(exc)))
+        workflow_logger.error("request_id=%s agent=kyc status=error exc=%s",
+                              state.get("request_id", "unknown"), exc)
     return state
 
 
@@ -498,7 +640,14 @@ async def submit_workflow(application_id: str, authorization: str | None = Heade
     app["status"] = "submitted"
     app["request_id"] = request_id
 
-    final_state, events = _run_agent_pipeline(application_id, request_id, app)
+    # Run the synchronous agent pipeline off the event loop thread so we don't
+    # block uvicorn's async worker during LLM calls (which can take 5-30s).
+    loop = asyncio.get_event_loop()
+    import functools
+    final_state, events = await loop.run_in_executor(
+        None,
+        functools.partial(_run_agent_pipeline, application_id, request_id, app),
+    )
     results = _merge_agent_outputs(application_id, app, final_state)
 
     workflow_status = "completed" if final_state.get("completed") else "failed"
@@ -524,6 +673,10 @@ async def submit_workflow(application_id: str, authorization: str | None = Heade
     )
 
     return {"message": "Workflow started", "app_id": application_id, "request_id": request_id, "status": "processing"}
+
+
+
+
 
 
 @router.get("/status/{application_id}")

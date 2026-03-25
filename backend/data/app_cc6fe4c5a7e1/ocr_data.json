@@ -1,0 +1,32 @@
+{
+  "payload": {
+    "ocr_extracted_data": {},
+    "ocr_documents": [
+      {
+        "document_type": "aadhaar_card",
+        "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\aadhaar_card.pdf",
+        "text": "mock text extracted from aadhaar_card.pdf",
+        "confidence": 93.0,
+        "text_length": 41
+      },
+      {
+        "document_type": "salary_slip",
+        "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\salary_slip.pdf",
+        "text": "mock text extracted from salary_slip.pdf",
+        "confidence": 93.0,
+        "text_length": 40
+      },
+      {
+        "document_type": "bank_statement",
+        "file_path": "temp\\uploads\\app_cc6fe4c5a7e1\\bank_statement.pdf",
+        "text": "mock text extracted from bank_statement.pdf",
+        "confidence": 93.0,
+        "text_length": 43
+      }
+    ]
+  },
+  "metadata": {
+    "request_id": "req_33fd8a9f6ec2",
+    "request_type": "loan"
+  }
+}

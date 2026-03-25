@@ -1,7 +1,7 @@
 """
 Compliance Agent with RAG for regulatory rules.
 
-This module implements regulatory compliance checking using RAG over USDA/IRDAI PDFs.
+This module implements regulatory compliance checking using RAG over RBI/NHB/IRDAI rule documents.
 """
 
 import asyncio
@@ -10,6 +10,7 @@ import time
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 import logging
+from dataclasses import dataclass
 
 from src.schemas.state import ApplicationState
 from src.utils.llm_helpers import parse_json_response
@@ -30,7 +31,7 @@ class ComplianceAgent:
     """
     Compliance Agent for regulatory rules validation.
     
-    This agent validates applications against regulatory rules from USDA/IRDAI
+    This agent validates applications against regulatory rules from RBI/NHB/IRDAI
     using RAG (Retrieval-Augmented Generation) for intelligent rule checking.
     """
     
@@ -52,7 +53,7 @@ class ComplianceAgent:
         if self.groq_api_key and RAG_AVAILABLE:
             try:
                 self.llm = ChatGroq(
-                    model="openai/gpt-oss-20b",
+                    model="llama3-70b-8192",
                     temperature=0.1,  # Very low for strict rule interpretation
                     api_key=self.groq_api_key
                 )
@@ -73,19 +74,31 @@ class ComplianceAgent:
             FAISS vector store or None
         """
         try:
-            from langchain.text_splitter import RecursiveCharacterTextSplitter
-            from langchain.docstore.document import Document
+            try:
+                from langchain.text_splitter import RecursiveCharacterTextSplitter
+            except ImportError:
+                RecursiveCharacterTextSplitter = None
+            try:
+                from langchain.docstore.document import Document
+            except ImportError:
+                try:
+                    from langchain_core.documents import Document
+                except ImportError:
+                    @dataclass
+                    class Document:
+                        page_content: str
+                        metadata: dict
             
             documents = []
             
-            # Load USDA loan rules
-            usda_path = self.rules_dir / "usda_loan_rules.txt"
-            if usda_path.exists():
-                with open(usda_path, 'r', encoding='utf-8') as f:
+            # Load RBI/NHB loan rules (replaces USDA rules)
+            rbi_path = self.rules_dir / "rbi_loan_rules.txt"
+            if rbi_path.exists():
+                with open(rbi_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    doc = Document(page_content=content, metadata={"source": "USDA", "type": "loan"})
+                    doc = Document(page_content=content, metadata={"source": "RBI/NHB", "type": "loan"})
                     documents.append(doc)
-                    logging.info(f"Loaded USDA rules: {len(content)} characters")
+                    logging.info(f"Loaded RBI/NHB loan rules: {len(content)} characters")
             
             # Load insurance rules (IRDAI/NICL naming variants)
             insurance_rules_candidates = [
@@ -107,12 +120,27 @@ class ComplianceAgent:
                 return None
 
             # Split documents into chunks
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
-                separators=["\n## ", "\n### ", "\n\n", "\n", " "]
-            )
-            splits = text_splitter.split_documents(documents)
+            if RecursiveCharacterTextSplitter is not None:
+                text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=1000,
+                    chunk_overlap=200,
+                    separators=["\n## ", "\n### ", "\n\n", "\n", " "]
+                )
+                splits = text_splitter.split_documents(documents)
+            else:
+                logging.warning("langchain.text_splitter not available. Using fallback chunker.")
+                splits = []
+                chunk_size = 1000
+                chunk_overlap = 200
+                stride = chunk_size - chunk_overlap
+                for doc in documents:
+                    text = doc.page_content or ""
+                    for idx in range(0, max(len(text), 1), stride):
+                        chunk = text[idx: idx + chunk_size]
+                        if not chunk:
+                            continue
+                        splits.append(Document(page_content=chunk, metadata=doc.metadata))
+
             logging.info(f"Split rules into {len(splits)} chunks")
             
             # Create embeddings and vector store
@@ -123,7 +151,6 @@ class ComplianceAgent:
             logging.info("FAISS vector store created")
             
             return vectorstore
-        
         except Exception as e:
             logging.error(f"Failed to load rules: {e}")
             return None
@@ -190,14 +217,21 @@ class ComplianceAgent:
         
         except Exception as e:
             error_msg = f"Compliance check error: {str(e)}"
-            state["errors"].append(error_msg)
+            state.setdefault("errors", []).append(error_msg)
             log_error("compliance", error_msg, request_id)
-            
-            # Default to passing on error (fail-open for availability)
+
+            # FAIL-CLOSED: a system error must never silently grant compliance.
+            # Route to human review so no application slips through unchecked.
             state["compliance_checked"] = True
-            state["compliance_passed"] = True
-            state["compliance_violations"] = []
-            
+            state["compliance_passed"] = False
+            state["compliance_violations"] = [{
+                "rule": "SYSTEM",
+                "reason": f"Compliance engine error — human review required: {str(e)}",
+                "severity": "CRITICAL",
+            }]
+            state["requires_human_review"] = True
+            state["compliance_error"] = str(e)
+
             duration_ms = (time.time() - start_time) * 1000
             log_agent_execution("ComplianceAgent", request_id, "failed", duration_ms)
         
@@ -281,14 +315,20 @@ class ComplianceAgent:
         
         except Exception as e:
             error_msg = f"Async compliance check error: {str(e)}"
-            state["errors"].append(error_msg)
+            state.setdefault("errors", []).append(error_msg)
             log_error("compliance", error_msg, request_id)
-            
-            # Default to passing on error (fail-open for availability)
+
+            # FAIL-CLOSED: a system error must never silently grant compliance.
             state["compliance_checked"] = True
-            state["compliance_passed"] = True
-            state["compliance_violations"] = []
-            
+            state["compliance_passed"] = False
+            state["compliance_violations"] = [{
+                "rule": "SYSTEM",
+                "reason": f"Compliance engine error — human review required: {str(e)}",
+                "severity": "CRITICAL",
+            }]
+            state["requires_human_review"] = True
+            state["compliance_error"] = str(e)
+
             duration_ms = (time.time() - start_time) * 1000
             log_agent_execution("ComplianceAgent", request_id, "failed (async)", duration_ms)
         
@@ -296,7 +336,7 @@ class ComplianceAgent:
     
     def _check_loan_compliance(self, data: Dict[str, Any], loan_type: str) -> List[Dict[str, str]]:
         """
-        Check loan application against USDA/banking rules.
+        Check loan application against RBI/NHB banking rules.
         
         Args:
             data: Applicant data
@@ -336,7 +376,7 @@ class ComplianceAgent:
             rules_text = "\n\n".join([doc.page_content for doc in relevant_docs])
             
             # Create prompt for LLM
-            prompt = f"""You are a regulatory compliance officer checking a loan application against USDA rules.
+            prompt = f"""You are a regulatory compliance officer checking a loan application against Indian RBI and NHB rules.
 
 Loan Type: {loan_type}
 
@@ -395,7 +435,7 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
             rules_text = "\n\n".join([doc.page_content for doc in relevant_docs])
             
             # Create prompt for LLM
-            prompt = f"""You are a regulatory compliance officer checking a loan application against USDA rules.
+            prompt = f"""You are a regulatory compliance officer checking a loan application against Indian RBI and NHB rules.
 
 Loan Type: {loan_type}
 
@@ -452,7 +492,7 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         cibil_score = data.get('cibil_score')
         if cibil_score and cibil_score < 640:
             violations.append({
-                "rule": "USDA Rule 1.1: Minimum Credit Score",
+                "rule": "RBI Rule 1.3: Minimum CIBIL Score",
                 "reason": f"CIBIL score {cibil_score} is below minimum requirement of 640",
                 "severity": "CRITICAL"
             })
@@ -472,7 +512,7 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
             
             if dti_ratio > 41:
                 violations.append({
-                    "rule": "USDA Rule 2.1: Debt-to-Income Ratio",
+                    "rule": "RBI Rule 3.1: FOIR Limit",
                     "reason": f"DTI ratio {dti_ratio:.1f}% exceeds maximum of 41%",
                     "severity": "CRITICAL"
                 })
@@ -481,7 +521,7 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         age = data.get('age')
         if age and age < 18:
             violations.append({
-                "rule": "USDA Rule 8.1: Minimum Age",
+                "rule": "RBI Rule 1.1: Minimum Age",
                 "reason": f"Applicant age {age} is below minimum of 18 years",
                 "severity": "CRITICAL"
             })
@@ -490,7 +530,7 @@ IMPORTANT: Only flag actual violations. If data is "Not provided", do not flag a
         employment_years = data.get('employment_years')
         if employment_years is not None and employment_years < 2:
             violations.append({
-                "rule": "USDA Rule 3.1: Employment History",
+                "rule": "RBI Rule 1.2: Employment History",
                 "reason": f"Employment history of {employment_years} years is below recommended 2 years",
                 "severity": "MEDIUM"
             })

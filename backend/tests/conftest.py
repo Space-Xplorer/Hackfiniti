@@ -1,5 +1,18 @@
+"""
+Shared test fixtures.
+
+Key design decisions:
+  - TEST_MODE=true is set before main.py is imported so the Limiter's key_func
+    returns a unique key per request, preventing rate-limit interference.
+  - In-memory state DBs are wiped before and after every test function.
+"""
+
 import base64
+import os
 from pathlib import Path
+
+# ── Must be set BEFORE main.py (and therefore slowapi) is imported ──────────
+os.environ.setdefault("TEST_MODE", "true")
 
 import pytest
 from fastapi.testclient import TestClient
